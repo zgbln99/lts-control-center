@@ -4,10 +4,13 @@ on:
   push:
     branches: [main]
   pull_request:
+    branches: [main]
 
 jobs:
   build-web:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://lts:lts@localhost:5432/lts_control_center
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -16,5 +19,7 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm install
+      - name: Generate Prisma client
+        run: npm run db:generate
       - name: Build web app
         run: npm run build
