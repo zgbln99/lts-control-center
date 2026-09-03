@@ -11,6 +11,7 @@
     "db:studio": "npm --workspace packages/db run studio",
     "import:kfz": "node scripts/import-kfz-xlsx.mjs",
     "import:kfz:db": "node scripts/import-kfz-to-db.mjs",
+    "bootstrap:kfz": "node scripts/bootstrap-kfz.mjs",
     "sync:mega-s4": "node scripts/sync-mega-s4.mjs",
     "sync:samsara": "node scripts/sync-samsara.mjs"
   },
