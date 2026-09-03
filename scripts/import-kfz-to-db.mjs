@@ -11,7 +11,25 @@ function asDate(value) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+function inferVehicleDescription(row) {
+  const notes = String(row.documentsNotes ?? '').toLowerCase();
+  const weight = Number(row.grossVehicleWeightKg ?? 0);
+
+  if (notes.includes('vito')) return { manufacturer: 'Mercedes-Benz', model: 'Vito', displayName: 'Mercedes-Benz Vito', category: 'VAN' };
+  if (notes.includes('atego')) return { manufacturer: 'Mercedes-Benz', model: 'Atego', displayName: 'Mercedes-Benz Atego', category: 'TRUCK' };
+  if (notes.includes('actros')) return { manufacturer: 'Mercedes-Benz', model: 'Actros', displayName: 'Mercedes-Benz Actros', category: 'TRUCK' };
+  if (notes.includes('sprinter')) return { manufacturer: 'Mercedes-Benz', model: 'Sprinter', displayName: 'Mercedes-Benz Sprinter', category: 'VAN' };
+  if (notes.includes('transit')) return { manufacturer: 'Ford', model: 'Transit', displayName: 'Ford Transit', category: 'VAN' };
+  if (notes.includes('niewiadow') || notes.includes('niewiadów')) return { manufacturer: 'Niewiadów', model: null, displayName: 'Anhänger Niewiadów', category: 'TRAILER' };
+  if (notes.includes('anhänger') || notes.includes('anhaenger')) return { manufacturer: null, model: null, displayName: 'Anhänger', category: 'TRAILER' };
+  if (/\bszm\b/i.test(row.documentsNotes ?? '')) return { manufacturer: null, model: null, displayName: 'Sattelzugmaschine', category: 'TRUCK' };
+  if (weight > 7500) return { manufacturer: null, model: null, displayName: 'Lkw', category: 'TRUCK' };
+  if (weight > 0 && weight <= 3500) return { manufacturer: null, model: null, displayName: 'Transporter / Pkw', category: 'VAN' };
+  return { manufacturer: null, model: null, displayName: null, category: 'OTHER' };
+}
+
 function vehicleData(row) {
+  const inferred = inferVehicleDescription(row);
   return {
     sourcePosition: row.sourcePosition ?? null,
     plateOriginal: row.plateOriginal ?? null,
@@ -20,6 +38,10 @@ function vehicleData(row) {
     vin: row.vin ?? null,
     insuranceNumber: row.insuranceNumber ?? null,
     taxNumber: row.taxNumber ?? null,
+    manufacturer: inferred.manufacturer,
+    model: inferred.model,
+    displayName: inferred.displayName,
+    category: inferred.category,
     taxMonthAmount: row.taxMonthAmount ?? null,
     taxQuarterAmount: row.taxQuarterAmount ?? null,
     taxSumAmount: row.taxSumAmount ?? null,
