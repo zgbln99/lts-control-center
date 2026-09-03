@@ -1,7 +1,7 @@
 'use client';
 import { useMemo, useState } from 'react';
 import { Check, X, MoreHorizontal, SlidersHorizontal, Columns3, Plus } from 'lucide-react';
-import { Vehicle } from '@/lib/demo';
+import { Vehicle } from '@/lib/fleet-types';
 import { AddVehicleDrawer } from '@/components/add-vehicle-drawer';
 
 function YesNo({yes}:{yes:boolean|null}) {
