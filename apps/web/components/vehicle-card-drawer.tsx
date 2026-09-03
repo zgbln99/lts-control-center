@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { CalendarDays, Check, ExternalLink, FileText, Save, ShoppingCart, X } from 'lucide-react';
+import { CalendarDays, Check, ExternalLink, FileText, Save, ShoppingCart, UploadCloud, X } from 'lucide-react';
 
 type Deadline={id:string;type:string;dueDate:string;completedAt:string|null;optional:boolean;notes:string|null};
 type DocumentRow={id:string;filename:string;type:string|null;mimeType:string|null;sizeBytes:string|null;source:string};
@@ -51,6 +51,7 @@ export function VehicleCardDrawer({vehicleId,plate,open,onClose,onChanged}:Props
   const [detail,setDetail]=useState<VehicleDetailResponse|null>(null);
   const [loading,setLoading]=useState(false);
   const [saving,setSaving]=useState(false);
+  const [uploading,setUploading]=useState(false);
   const [message,setMessage]=useState('');
 
   async function load(){
@@ -106,6 +107,24 @@ export function VehicleCardDrawer({vehicleId,plate,open,onClose,onChanged}:Props
       await load();
       await onChanged?.();
     }catch(error){setMessage(error instanceof Error?error.message:'Fehler beim Speichern.')}finally{setSaving(false)}
+  }
+
+  async function uploadDocument(event:FormEvent<HTMLFormElement>){
+    event.preventDefault();
+    if(!vehicleId) return;
+    const form=new FormData(event.currentTarget);
+    const file=form.get('file');
+    if(!(file instanceof File)||!file.size) return;
+    setUploading(true); setMessage('');
+    try{
+      const response=await fetch(`/api/vehicles/${vehicleId}/documents`,{method:'POST',body:form});
+      const payload=await response.json().catch(()=>({}));
+      if(!response.ok) throw new Error(payload.error || 'Dokument konnte nicht hochgeladen werden.');
+      event.currentTarget.reset();
+      setMessage('Dokument in MEGA S4 gespeichert.');
+      await load();
+      await onChanged?.();
+    }catch(error){setMessage(error instanceof Error?error.message:'Fehler beim Upload.')}finally{setUploading(false)}
   }
 
   async function openDocument(id:string){
@@ -193,6 +212,11 @@ export function VehicleCardDrawer({vehicleId,plate,open,onClose,onChanged}:Props
 
         <section className="drawerSection">
           <div className="drawerSectionHead"><div><h3>Dokumente</h3><p>{detail.documents.length} Dateien in der Fahrzeugkartothek</p></div><FileText size={17}/></div>
+          <form className="documentUpload" onSubmit={uploadDocument}>
+            <select name="type" defaultValue="SONSTIGE"><option value="FAHRZEUGSCHEIN">Fahrzeugschein</option><option value="TUV">TÜV</option><option value="SP">SP</option><option value="TACHO">Tachoprüfung</option><option value="VERSICHERUNG">Versicherung</option><option value="FINANZIERUNG">Finanzierung</option><option value="RECHNUNG">Rechnung</option><option value="FOTO">Foto</option><option value="SONSTIGE">Sonstiges</option></select>
+            <input name="file" type="file" required accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"/>
+            <button type="submit" disabled={uploading}><UploadCloud size={14}/>{uploading?'Upload ...':'Hochladen'}</button>
+          </form>
           <div className="drawerDocuments">{detail.documents.length?detail.documents.map(document=><div className="drawerDocument" key={document.id}><span className="documentIcon"><FileText size={15}/></span><div><strong>{document.filename}</strong><small>{document.type || 'Dokument'} · {formatBytes(document.sizeBytes)}</small></div><button type="button" onClick={()=>void openDocument(document.id)} disabled={document.source!=='MEGA_S4'}>{document.source==='MEGA_S4'?<ExternalLink size={14}/>:<Check size={14}/>}</button></div>):<p className="drawerEmpty">Noch keine Dokumente synchronisiert.</p>}</div>
         </section>
 
