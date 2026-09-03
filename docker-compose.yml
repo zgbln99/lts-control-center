@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: lts_control
+      POSTGRES_USER: lts
+      POSTGRES_PASSWORD: change-me
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lts -d lts_control"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    image: node:22-alpine
+    working_dir: /app
+    volumes:
+      - ./:/app
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://lts:change-me@postgres:5432/lts_control
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
