@@ -14,7 +14,7 @@ export function AddVehicleDrawer({open,onClose,onCreated}:{open:boolean;onClose:
     setSaving(true); setMessage('');
     try{
       const payload={
-        plate:form.get('plate'),vin:form.get('vin'),manufacturer:form.get('manufacturer'),model:form.get('model'),
+        plate:form.get('plate'),vin:form.get('vin'),category:form.get('category'),manufacturer:form.get('manufacturer'),model:form.get('model'),
         displayName:form.get('displayName'),firstRegistration:form.get('firstRegistration'),insuranceNumber:form.get('insuranceNumber'),
         inventoryNumber:form.get('inventoryNumber'),cameraInstalled:form.get('cameraInstalled'),wrapped:form.get('wrapped'),
         wrapType:form.get('wrapType'),notes:form.get('notes'),
@@ -36,8 +36,9 @@ export function AddVehicleDrawer({open,onClose,onCreated}:{open:boolean;onClose:
           <div className="drawerSectionHead"><div><h3>Fahrzeug</h3><p>Kennzeichen ist Pflichtfeld. VIN wird auf Duplikate geprüft.</p></div><Plus size={17}/></div>
           <div className="drawerFormGrid">
             <label><span>Kennzeichen *</span><input name="plate" required autoFocus placeholder="TF-LS 1234"/></label>
+            <label><span>Kategorie</span><select name="category" defaultValue="OTHER"><option value="TRUCK">Lkw</option><option value="VAN">Transporter</option><option value="TRAILER">Anhänger</option><option value="SEMITRAILER">Auflieger</option><option value="OTHER">Sonstiges / noch offen</option></select></label>
             <label><span>Erstzulassung</span><input name="firstRegistration" type="date"/></label>
-            <label className="wide"><span>VIN</span><input name="vin" placeholder="WDB..."/></label>
+            <label><span>VIN</span><input name="vin" placeholder="WDB..."/></label>
             <label><span>Hersteller</span><input name="manufacturer" placeholder="Mercedes-Benz"/></label>
             <label><span>Modell</span><input name="model" placeholder="Atego"/></label>
             <label className="wide"><span>Anzeigename</span><input name="displayName" placeholder="Mercedes-Benz Atego"/></label>
