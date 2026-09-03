@@ -50,6 +50,74 @@ enum UserRole {
   READ_ONLY
 }
 
+enum DriverStatus {
+  ACTIVE
+  INACTIVE
+  LEFT
+}
+
+enum WorkshopStatus {
+  OPEN
+  PLANNED
+  IN_PROGRESS
+  WAITING_PARTS
+  DONE
+  CANCELLED
+}
+
+enum WorkshopPriority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+enum TemplateChannel {
+  WHATSAPP
+  EMAIL
+  LETTER
+  SYSTEM
+}
+
+enum AutomationProvider {
+  N8N
+  SYSTEM
+}
+
+enum CostCategory {
+  FUEL
+  MAUT
+  LEASING
+  INSURANCE
+  TAX
+  SERVICE
+  REPAIR
+  TIRES
+  CLEANING
+  OTHER
+}
+
+enum IntegrationKey {
+  SAMSARA
+  MEGA_S4
+  CHATWOOT
+  N8N
+  META
+  VACATION_PORTAL
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  ARCHIVE
+  RESTORE
+  LOGIN
+  LOGOUT
+  UPLOAD
+  SYNC
+}
+
 model Vehicle {
   id                    String           @id @default(uuid())
   sourcePosition        Int?
@@ -95,6 +163,8 @@ model Vehicle {
   syncMappings          StorageFolderMapping[]
   hookLoadPeriods       VehicleHookLoadPeriod[]
   telemetry             VehicleTelemetry?
+  workshopOrders        WorkshopOrder[]
+  costs                 CostEntry[]
 }
 
 model VehicleTelemetry {
@@ -178,6 +248,157 @@ model VehicleHookLoadPeriod {
   @@index([plateText])
 }
 
+model Driver {
+  id                  String       @id @default(uuid())
+  personnelNumber     String?      @unique
+  firstName           String
+  lastName            String
+  phone               String?
+  email               String?
+  language            String       @default("de")
+  status              DriverStatus @default(ACTIVE)
+  employmentStart     DateTime?
+  employmentEnd       DateTime?
+  licenseNumber       String?
+  licenseClasses      String[]     @default([])
+  licenseExpiresAt    DateTime?
+  driverCardNumber    String?      @unique
+  driverCardExpiresAt DateTime?
+  code95ExpiresAt     DateTime?
+  medicalExpiresAt    DateTime?
+  notes               String?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  documents           DriverDocument[]
+  costs               CostEntry[]
+  @@index([status, lastName])
+  @@index([licenseExpiresAt])
+  @@index([driverCardExpiresAt])
+}
+
+model DriverDocument {
+  id         String         @id @default(uuid())
+  driverId   String
+  type       String?
+  filename   String
+  storageKey String         @unique
+  mimeType   String?
+  sizeBytes  BigInt?
+  expiresAt  DateTime?
+  source     DocumentSource @default(MANUAL)
+  driver     Driver         @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  @@index([driverId])
+  @@index([expiresAt])
+}
+
+model WorkshopOrder {
+  id            String           @id @default(uuid())
+  vehicleId     String
+  title         String
+  description   String?
+  status        WorkshopStatus   @default(OPEN)
+  priority      WorkshopPriority @default(NORMAL)
+  workshop      String?
+  plannedAt     DateTime?
+  dueAt         DateTime?
+  completedAt   DateTime?
+  cost          Decimal?         @db.Decimal(12,2)
+  mileageKm     Int?
+  invoiceNumber String?
+  notes         String?
+  vehicle       Vehicle          @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  @@index([status, priority])
+  @@index([vehicleId, dueAt])
+}
+
+model MessageTemplate {
+  id               String          @id @default(uuid())
+  name             String
+  channel          TemplateChannel @default(WHATSAPP)
+  language         String          @default("de")
+  category         String?
+  subject          String?
+  body             String
+  metaTemplateName String?
+  variables        Json?
+  active           Boolean         @default(true)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  @@index([channel, active])
+}
+
+model DocumentTemplate {
+  id              String   @id @default(uuid())
+  name            String
+  category        String?
+  language        String   @default("de")
+  content         String
+  filenamePattern String?
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@index([category, active])
+}
+
+model AutomationDefinition {
+  id          String             @id @default(uuid())
+  name        String
+  description String?
+  provider    AutomationProvider @default(N8N)
+  externalId  String?
+  triggerType String?
+  schedule    String?
+  active      Boolean            @default(false)
+  config      Json?
+  lastRunAt   DateTime?
+  lastStatus  String?
+  lastMessage String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  @@index([provider, active])
+}
+
+model CostEntry {
+  id            String       @id @default(uuid())
+  vehicleId     String?
+  driverId      String?
+  date          DateTime
+  category      CostCategory
+  amount        Decimal      @db.Decimal(14,2)
+  currency      String       @default("EUR")
+  vendor        String?
+  invoiceNumber String?
+  description   String?
+  source        String?
+  vehicle       Vehicle?     @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  driver        Driver?      @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  @@index([date, category])
+  @@index([vehicleId, date])
+}
+
+model IntegrationState {
+  key         IntegrationKey @id
+  enabled     Boolean        @default(false)
+  lastSyncAt  DateTime?
+  lastStatus  String?
+  lastMessage String?
+  counters    Json?
+  configPublic Json?
+  updatedAt   DateTime       @updatedAt
+}
+
+model AppSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
 model User {
   id           String   @id @default(uuid())
   email        String   @unique
@@ -188,5 +409,20 @@ model User {
   lastLoginAt  DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  auditLogs    AuditLog[]
   @@index([active, role])
+}
+
+model AuditLog {
+  id        String      @id @default(uuid())
+  userId    String?
+  action    AuditAction
+  entity    String
+  entityId  String?
+  details   Json?
+  user      User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt DateTime    @default(now())
+  @@index([createdAt])
+  @@index([entity, entityId])
+  @@index([userId, createdAt])
 }
