@@ -14,6 +14,13 @@ function deadlineText(state: DeadlineState | undefined) {
   return 'gültig';
 }
 
+function EquipmentState({value,positive,negative}:{value:boolean|null;positive:string;negative:string}) {
+  if (value === null) return <strong className="muted">Noch nicht erfasst</strong>;
+  return value
+    ? <strong className="greenText"><Check size={15}/> {positive}</strong>
+    : <strong className="redText"><X size={15}/> {negative}</strong>;
+}
+
 export function VehicleDetail({vehicle}:{vehicle:Vehicle}){
  const docs=(vehicle.documentsNotes ?? '').split(',').map(item=>item.trim()).filter(Boolean);
  return <section className="vehicleDetail">
@@ -28,9 +35,9 @@ export function VehicleDetail({vehicle}:{vehicle:Vehicle}){
      <div className={deadlineClass(vehicle.tuvState)}><span>TÜV</span><strong>{vehicle.tuv}</strong><small>{deadlineText(vehicle.tuvState)}</small></div>
      <div className={deadlineClass(vehicle.spState)}><span>SP</span><strong>{vehicle.sp ?? '—'}</strong><small>{deadlineText(vehicle.spState)}</small></div>
      <div className={deadlineClass(vehicle.tachoState)}><span>Tacho</span><strong className={vehicle.tachoState==='ok'?'greenText':undefined}>{vehicle.tacho ?? '—'}</strong><small>{deadlineText(vehicle.tachoState)}</small></div>
-     <div className="deadlineCard"><span>Kamera</span><strong className={vehicle.camera?'greenText':'redText'}>{vehicle.camera?<><Check size={15}/> Vorhanden</>:<><X size={15}/> Nicht vorhanden</>}</strong></div>
-     <div className="deadlineCard"><span>Beklebung</span><strong className={vehicle.wrapped?'greenText':'redText'}>{vehicle.wrapped?<><Check size={15}/> LTS</>:<><X size={15}/> Nicht beklebt</>}</strong></div>
-     <div className="samsaraBox"><h3>Samsara <em>{vehicle.samsara?'Online':'Nicht verbunden'}</em></h3><div><span>Standort</span><strong>{vehicle.location}</strong></div><div><span>Letzte Aktualisierung</span><strong>{vehicle.locationAge}</strong></div><div><span>Kilometerstand</span><strong>{vehicle.mileage}</strong></div><button>In Samsara öffnen <ExternalLink size={14}/></button></div>
+     <div className="deadlineCard"><span>Kamera</span><EquipmentState value={vehicle.camera} positive="Vorhanden" negative="Nicht vorhanden"/></div>
+     <div className="deadlineCard"><span>Beklebung</span><EquipmentState value={vehicle.wrapped} positive="LTS" negative="Nicht beklebt"/></div>
+     <div className="samsaraBox"><h3>Samsara <em>{vehicle.samsara?'Verbunden':'Nicht verbunden'}</em></h3><div><span>Standort</span><strong>{vehicle.location}</strong></div><div><span>Letzte Aktualisierung</span><strong>{vehicle.locationAge}</strong></div><div><span>Kilometerstand</span><strong>{vehicle.mileage}</strong></div><button>In Samsara öffnen <ExternalLink size={14}/></button></div>
      <div className="docsBox"><h3>Unterlagen vorhanden</h3>{docs.length?docs.slice(0,4).map((item,index)=><p key={`${item}-${index}`}>{item}</p>):<p className="muted">Noch keine Unterlagen synchronisiert</p>}<button>Alle Unterlagen anzeigen</button></div>
    </div>
  </section>
