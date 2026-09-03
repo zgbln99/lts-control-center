@@ -5,7 +5,7 @@ const allowed=new Set<VehicleLifecycle>(['SOLD','RETURNED','SCRAPPED','ARCHIVED'
 
 function optionalNumber(value:unknown){
   if(value===null || value===undefined || value==='') return null;
-  const parsed=Number(value);
+  const parsed=Number(String(value).replace(',','.'));
   return Number.isFinite(parsed) ? parsed : null;
 }
 
@@ -21,6 +21,9 @@ export async function POST(request:NextRequest,{params}:{params:Promise<{id:stri
   const soldPrice=optionalNumber(body?.soldPrice);
   const soldMileage=optionalNumber(body?.soldMileageKm);
 
+  const existing=await prisma.vehicle.findUnique({where:{id},select:{id:true}});
+  if(!existing) return NextResponse.json({error:'Vehicle not found'},{status:404});
+
   const vehicle=await prisma.vehicle.update({
     where:{id},
     data:{
@@ -29,6 +32,7 @@ export async function POST(request:NextRequest,{params}:{params:Promise<{id:stri
       soldTo:String(body?.soldTo ?? '').trim() || null,
       soldPrice,
       soldMileageKm:soldMileage===null ? null : Math.round(soldMileage),
+      lifecycleNote:String(body?.lifecycleNote ?? '').trim() || null,
     },
   });
 
