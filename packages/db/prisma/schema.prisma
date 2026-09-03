@@ -42,10 +42,16 @@ enum VehicleLifecycle {
   ARCHIVED
 }
 
+enum UserRole {
+  ADMIN
+  FUHRPARK
+  PERSONAL
+  DISPOSITION
+  READ_ONLY
+}
+
 model Vehicle {
   id                    String           @id @default(uuid())
-
-  // Source workbook identity / registration
   sourcePosition        Int?
   plate                 String           @unique
   plateOriginal         String?
@@ -54,13 +60,9 @@ model Vehicle {
   vin                   String?          @unique
   insuranceNumber       String?
   taxNumber             String?
-
-  // Human-friendly description. Can be enriched from Samsara/manual data later.
   manufacturer          String?
   model                 String?
   displayName           String?
-
-  // Values preserved 1:1 from the current Kfz workbook
   taxMonthAmount        Decimal?         @db.Decimal(12,2)
   taxQuarterAmount      Decimal?         @db.Decimal(12,2)
   taxSumAmount          Decimal?         @db.Decimal(12,2)
@@ -75,8 +77,6 @@ model Vehicle {
   notes                 String?
   lifecycleNote         String?
   sourceRaw             Json?
-
-  // LTS Control Center extensions
   category              VehicleCategory  @default(OTHER)
   lifecycle             VehicleLifecycle @default(ACTIVE)
   cameraInstalled       Boolean?
@@ -84,16 +84,12 @@ model Vehicle {
   wrapType              String?
   samsaraId             String?          @unique
   storagePrefix         String?
-
-  // Sale / archive keeps full history
   soldAt                DateTime?
   soldTo                String?
   soldPrice             Decimal?         @db.Decimal(12,2)
   soldMileageKm         Int?
-
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
-
   deadlines             VehicleDeadline[]
   documents             VehicleDocument[]
   syncMappings          StorageFolderMapping[]
@@ -114,9 +110,7 @@ model VehicleTelemetry {
   lastSeenAt     DateTime?
   raw            Json?
   syncedAt       DateTime @default(now()) @updatedAt
-
   vehicle        Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
-
   @@index([lastSeenAt])
   @@index([geofenceName])
 }
@@ -134,7 +128,6 @@ model VehicleDeadline {
   vehicle     Vehicle      @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
-
   @@index([vehicleId, dueDate])
   @@index([type, dueDate])
 }
@@ -155,7 +148,6 @@ model VehicleDocument {
   vehicle      Vehicle        @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
-
   @@index([vehicleId])
   @@index([expiresAt])
 }
@@ -170,12 +162,9 @@ model StorageFolderMapping {
   confirmed       Boolean  @default(false)
   vehicle         Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   createdAt       DateTime @default(now())
-
   @@index([vehicleId])
 }
 
-// Second sheet of the source workbook is preserved independently and linked
-// to a vehicle when the plate can be resolved confidently.
 model VehicleHookLoadPeriod {
   id        String   @id @default(uuid())
   vehicleId String?
@@ -185,7 +174,19 @@ model VehicleHookLoadPeriod {
   sourceRaw Json?
   vehicle   Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
-
   @@index([vehicleId, startsAt])
   @@index([plateText])
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         UserRole @default(READ_ONLY)
+  active       Boolean  @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  @@index([active, role])
 }
