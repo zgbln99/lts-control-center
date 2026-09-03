@@ -1,31 +1,105 @@
 # LTS Control Center
 
-Centralny panel operacyjny LTS Logistik.
+Centralny panel operacyjny LTS Logistik. Repo zawiera kompletny skeleton aplikacji; prawdziwe dane dostępowe do systemów zewnętrznych są podpinane dopiero na etapie integracyjnym/development.
 
 ## Zasada UI
-Widok Fuhrpark rozwijamy **1:1 względem zaakceptowanej wizualizacji** `Fuhrpark-Dashboard mit Live-Fahrzeugübersicht.png`. Układ, hierarchia informacji, sidebar, KPI, tabela, prawy rail oraz karta pojazdu są traktowane jako zamrożony kierunek designu.
 
-## Aktualny zakres
-- Dashboard Control Center
-- Fuhrpark / wszystkie aktywne pojazdy
-- import danych z `Kfz Liste aktuell 2026.xlsx`
-- pełna karta pojazdu + edycja
-- ręczne dodawanie nowych pojazdów
-- TÜV / SP / Tacho / opcjonalne UVV / pozostałe terminy
+Fuhrpark rozwijamy **1:1 względem zaakceptowanej wizualizacji** `Fuhrpark-Dashboard mit Live-Fahrzeugübersicht.png`: ciemny sidebar, jasny workspace, KPI, główna tabela, prawy rail, wysuwana karta pojazdu i spójny język wizualny wszystkich modułów.
+
+Nie dokładamy przypadkowego „admin panel look” ani redesignu podczas rozwoju funkcji.
+
+## Moduły
+
+### Control Center
+- Dashboard
+- globalne wyszukiwanie `Cmd/Ctrl + K`
+- alerty terminów
+- status integracji
+
+### Fuhrpark
+- aktywne Fahrzeuge
+- Anhänger / Auflieger
+- kategorie TRUCK / VAN / TRAILER / SEMITRAILER / OTHER
+- karta i edycja pojazdu
 - kamera / oklejenie
-- dokumenty z MEGA S4 + ręczny upload do S4
-- Samsara live data / przebieg / lokalizacja
-- sprzedaż i archiwum bez kasowania historii
-- centralny panel dokumentów
+- TÜV / SP / Tacho / Service / Versicherung / Leasing / opcjonalne UVV
+- Werkstatt
+- Verkauf / Archiv bez kasowania historii
+- dokumenty MEGA S4 + signed URL
+- ręczny upload dokumentów
+- Samsara snapshot: Standort, GPS, przebieg, online/last seen
 
-## Docelowe moduły
-- Chatwoot / WhatsApp Cloud API
-- Meta templates
-- n8n automations
-- Urlaubsportal
-- DDD Analyzer
+### Fahrer
+- Fahrer
+- Führerscheine
+- Fahrerkarten
+- dokumenty kierowców w MEGA S4
+- DDD / Verstoßauswertung
 
-## Production start na VPS
+> Nie istnieje stałe przypisanie kierowca → pojazd. Obie encje są niezależne.
+
+### Kommunikation
+- Chatwoot / WhatsApp workspace adapter
+- lokalne szablony komunikacji
+- Meta WhatsApp templates adapter
+- n8n workflow adapter
+- lokalne definicje automatyzacji
+
+### Dokumente
+- centralna kartoteka pojazdów
+- dokumenty kierowców
+- szablony dokumentów
+
+### Berichte
+- koszty
+- agregaty floty
+- wygasające terminy i dokumenty
+
+### Administration
+- użytkownicy
+- role
+- aktywacja/blokowanie kont
+- audit log
+
+## Role
+
+- `ADMIN` — pełny dostęp
+- `FUHRPARK` — flota, terminy, warsztat, pojazdowe dokumenty, koszty, DDD
+- `PERSONAL` — kierowcy, dokumenty kierowców, DDD
+- `DISPOSITION` — komunikacja, odczyt kierowców, DDD
+- `READ_ONLY` — odczyt floty/dokumentów/raportów bez zapisu
+
+Role są egzekwowane w middleware po stronie serwera; UI dodatkowo ukrywa niedozwolone akcje.
+
+## Stack
+
+- Next.js / React
+- PostgreSQL
+- Prisma
+- Docker / Docker Compose
+- MEGA S4 (S3-compatible)
+- Samsara API
+- Chatwoot API
+- Meta WhatsApp Cloud API
+- n8n API / webhooks
+- istniejący Urlaubsportal
+- istniejący DDD Analyzer / alternatywnie Transinet JSON
+
+## Konfiguracja
+
+```bash
+cp .env.example .env
+```
+
+Sekretów **nie commitujemy**. Komplet zmiennych znajduje się w `.env.example`.
+
+Szczegóły architektury: [`docs/architecture.md`](docs/architecture.md)
+
+Kontrakty integracji: [`docs/integrations.md`](docs/integrations.md)
+
+Importer Kfz-Liste: [`docs/kfz-import.md`](docs/kfz-import.md)
+
+## Uruchomienie lokalne / VPS
 
 ```bash
 git clone https://github.com/zgbln99/lts-control-center.git
@@ -36,20 +110,39 @@ nano .env
 docker compose up -d --build
 ```
 
-Panel: `http://SERVER:3000/dashboard`
+Panel:
 
-Healthcheck: `http://SERVER:3000/api/health`
-
-> Przed startem zmień `POSTGRES_PASSWORD` i odpowiadający mu `DATABASE_URL`. Jeżeli hasło zawiera znaki specjalne, zakoduj je poprawnie w URL albo użyj osobnego URL-safe hasła do PostgreSQL.
-
-## Pierwszy import prawdziwego Excela
-Workbook nie jest commitowany do repo. Skopiuj go na VPS, np. do `/opt/lts-import/Kfz Liste aktuell 2026.xlsx`, a następnie:
-
-```bash
-docker compose exec web npm run bootstrap:kfz -- "/opt/lts-import/Kfz Liste aktuell 2026.xlsx"
+```text
+http://SERVER:3000/dashboard
 ```
 
-Jeżeli plik nie istnieje wewnątrz kontenera, najprościej skopiować go tymczasowo:
+Healthcheck:
+
+```text
+http://SERVER:3000/api/health
+```
+
+## Pierwszy administrator
+
+Ustaw w `.env`:
+
+```env
+BOOTSTRAP_ADMIN_EMAIL=
+BOOTSTRAP_ADMIN_NAME=
+BOOTSTRAP_ADMIN_PASSWORD=
+```
+
+Następnie:
+
+```bash
+docker compose exec web npm run bootstrap:admin
+```
+
+Kolejnych użytkowników tworzy się już w `Einstellungen → Benutzer`.
+
+## Import prawdziwego Excela
+
+Workbook nie jest commitowany do repo.
 
 ```bash
 docker cp "/lokalna/sciezka/Kfz Liste aktuell 2026.xlsx" \
@@ -58,29 +151,44 @@ docker cp "/lokalna/sciezka/Kfz Liste aktuell 2026.xlsx" \
 docker compose exec web npm run bootstrap:kfz -- /tmp/kfz.xlsx
 ```
 
-Bootstrap najpierw aktualizuje schemat bazy, potem waliduje Excel i generuje preview. Przy konflikcie tablic import zatrzymuje się **przed zmianą danych pojazdów**.
+Importer:
+- normalizuje tablice i aliasy historyczne,
+- zachowuje surowe wartości,
+- rozdziela aktywną i historyczną część listy,
+- rozpoznaje `verkauft` / `abgemeldet`,
+- importuje arkusz `Hakenlast`,
+- zatrzymuje import przy konflikcie canonical plate.
 
-## Synchronizacja MEGA S4
-Po uzupełnieniu zmiennych `MEGA_S4_*` w `.env`:
+## MEGA S4
 
 ```bash
 docker compose exec web npm run sync:mega-s4
 ```
 
-Foldery mogą pozostać w obecnym formacie, np. `TF-LS 5050`, `TF-LS1110` czy `TF-NP 2002 Antos`. Synchronizator normalizuje tablice i dopasowuje foldery do pojazdów.
+Foldery mogą pozostać np. `TF-LS 5050`, `TF-LS1110`, `TF-NP 2002 Antos`. Synchronizator dopasowuje je po tablicy i aliasach.
 
-## Synchronizacja Samsara
-Po uzupełnieniu `SAMSARA_API_TOKEN`:
+## Samsara
 
 ```bash
 docker compose exec web npm run sync:samsara
 ```
 
-## Architektura
-- Next.js / React — UI i API
-- PostgreSQL — centralna baza danych
-- Prisma — model danych
-- MEGA S4 — magazyn dokumentów
-- Samsara — dane live pojazdów
-- n8n — automatyzacje i harmonogramy
-- Chatwoot — warstwa WhatsApp dla użytkowników
+Nie kopiujemy całej Samsary — tylko dane potrzebne Control Center.
+
+## DDD Analyzer
+
+Neutralne wejście danych:
+
+```text
+POST /api/ddd/batches
+```
+
+Analyzer może później zostać podmieniony bez przebudowy UI. Przykładowy payload znajduje się w `docs/integrations.md`.
+
+## CI
+
+Repo posiada dwa niezależne checki:
+- `CI` — dependency install → Prisma generate → production Next build
+- `Docker CI` — budowa produkcyjnego obrazu Docker
+
+Etap podpinania prawdziwych API zaczynamy dopiero, gdy oba checki przechodzą na aktualnym `main`.
