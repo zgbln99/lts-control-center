@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Truck, Container, CalendarDays, Wrench, Archive, UserRound, IdCard, CreditCard, MessageCircle, FileText, Workflow, FolderOpen, BarChart3, ReceiptEuro, MapPin, CalendarRange, Boxes, Settings, Bot, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, Truck, Container, CalendarDays, Wrench, Archive, UserRound, IdCard, CreditCard, MessageCircle, FileText, Workflow, FolderOpen, BarChart3, ReceiptEuro, MapPin, CalendarRange, Boxes, Settings, Bot, ShieldAlert, Files } from 'lucide-react';
 
 const sections = [
   { title:'', items:[{label:'Dashboard', icon:LayoutDashboard, href:'/dashboard'}]},
@@ -16,6 +16,7 @@ const sections = [
     {label:'Fahrer',icon:UserRound,href:'/fahrer'},
     {label:'Führerscheine',icon:IdCard,href:'/fahrer/fuehrerscheine'},
     {label:'Fahrerkarten',icon:CreditCard,href:'/fahrer/fahrerkarten'},
+    {label:'Fahrerdokumente',icon:Files,href:'/fahrer/dokumente'},
     {label:'Verstoßauswertung',icon:ShieldAlert,href:'/fahrer/verstoesse'}
   ]},
   { title:'KOMMUNIKATION', items:[
