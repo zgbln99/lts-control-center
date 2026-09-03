@@ -7,36 +7,55 @@ enum DocumentSource { GOOGLE_DRIVE_IMPORT MEGA_S4 MANUAL SAMSARA SYSTEM }
 enum VehicleLifecycle { ACTIVE SOLD RETURNED SCRAPPED ARCHIVED }
 
 model Vehicle {
-  id                String           @id @default(uuid())
-  plate             String           @unique
-  firstRegistration DateTime?
-  vin               String?          @unique
-  insuranceNumber   String?
-  taxNumber         String?
-  taxAmount         Decimal?         @db.Decimal(12,2)
-  annualTollValue   Decimal?         @db.Decimal(12,2)
-  financingNotes    String?
-  financingEnd      DateTime?
-  registeredAt      DateTime?
-  monthlyRate       Decimal?         @db.Decimal(12,2)
-  inventoryNumber   String?
-  notes             String?
-  category          VehicleCategory  @default(OTHER)
-  lifecycle         VehicleLifecycle @default(ACTIVE)
-  cameraInstalled   Boolean?
-  wrapped           Boolean?
-  wrapType          String?
-  samsaraId         String?          @unique
-  storagePrefix     String?
-  soldAt            DateTime?
-  soldTo            String?
-  soldPrice         Decimal?         @db.Decimal(12,2)
-  soldMileageKm     Int?
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  deadlines         VehicleDeadline[]
-  documents         VehicleDocument[]
-  syncMappings      StorageFolderMapping[]
+  id                    String           @id @default(uuid())
+
+  // Source workbook identity / registration
+  sourcePosition        Int?
+  plate                 String           @unique
+  plateOriginal         String?
+  plateAliases          String[]         @default([])
+  firstRegistration     DateTime?
+  vin                   String?          @unique
+  insuranceNumber       String?
+  taxNumber             String?
+
+  // Values preserved 1:1 from the current Kfz workbook
+  taxMonthAmount        Decimal?         @db.Decimal(12,2)
+  taxQuarterAmount      Decimal?         @db.Decimal(12,2)
+  taxSumAmount          Decimal?         @db.Decimal(12,2)
+  grossVehicleWeightKg  Int?
+  documentsNotes        String?
+  financingEnd          DateTime?
+  financingEndRaw       String?
+  registeredAt          DateTime?
+  monthlyRate           Decimal?         @db.Decimal(12,2)
+  rateRaw               String?
+  inventoryNumber       String?
+  notes                 String?
+  sourceRaw             Json?
+
+  // LTS Control Center extensions
+  category              VehicleCategory  @default(OTHER)
+  lifecycle             VehicleLifecycle @default(ACTIVE)
+  cameraInstalled       Boolean?
+  wrapped               Boolean?
+  wrapType              String?
+  samsaraId             String?          @unique
+  storagePrefix         String?
+
+  // Sale / archive keeps full history
+  soldAt                DateTime?
+  soldTo                String?
+  soldPrice             Decimal?         @db.Decimal(12,2)
+  soldMileageKm         Int?
+
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  deadlines             VehicleDeadline[]
+  documents             VehicleDocument[]
+  syncMappings          StorageFolderMapping[]
+  hookLoadPeriods       VehicleHookLoadPeriod[]
 }
 
 model VehicleDeadline {
@@ -52,7 +71,9 @@ model VehicleDeadline {
   vehicle     Vehicle      @relation(fields:[vehicleId], references:[id], onDelete:Cascade)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+
   @@index([vehicleId, dueDate])
+  @@index([type, dueDate])
 }
 
 model VehicleDocument {
@@ -71,7 +92,9 @@ model VehicleDocument {
   vehicle      Vehicle        @relation(fields:[vehicleId], references:[id], onDelete:Cascade)
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
+
   @@index([vehicleId])
+  @@index([expiresAt])
 }
 
 model StorageFolderMapping {
@@ -84,4 +107,22 @@ model StorageFolderMapping {
   confirmed       Boolean  @default(false)
   vehicle         Vehicle  @relation(fields:[vehicleId], references:[id], onDelete:Cascade)
   createdAt       DateTime @default(now())
+
+  @@index([vehicleId])
+}
+
+// Second sheet of the source workbook is preserved independently and linked
+// to a vehicle when the plate can be resolved confidently.
+model VehicleHookLoadPeriod {
+  id        String   @id @default(uuid())
+  vehicleId String?
+  plateText String
+  startsAt  DateTime
+  endsAt    DateTime?
+  sourceRaw Json?
+  vehicle   Vehicle? @relation(fields:[vehicleId], references:[id], onDelete:SetNull)
+  createdAt DateTime @default(now())
+
+  @@index([vehicleId, startsAt])
+  @@index([plateText])
 }
