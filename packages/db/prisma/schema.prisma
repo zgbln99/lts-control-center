@@ -383,14 +383,14 @@ model CostEntry {
 }
 
 model IntegrationState {
-  key         IntegrationKey @id
-  enabled     Boolean        @default(false)
-  lastSyncAt  DateTime?
-  lastStatus  String?
-  lastMessage String?
-  counters    Json?
+  key          IntegrationKey @id
+  enabled      Boolean        @default(false)
+  lastSyncAt   DateTime?
+  lastStatus   String?
+  lastMessage  String?
+  counters     Json?
   configPublic Json?
-  updatedAt   DateTime       @updatedAt
+  updatedAt    DateTime       @updatedAt
 }
 
 model AppSetting {
@@ -425,4 +425,44 @@ model AuditLog {
   @@index([createdAt])
   @@index([entity, entityId])
   @@index([userId, createdAt])
+}
+
+model DddAnalysisBatch {
+  id          String   @id @default(uuid())
+  source      String
+  periodStart DateTime?
+  periodEnd   DateTime?
+  status      String   @default("IMPORTED")
+  externalId  String?
+  raw         Json?
+  createdAt   DateTime @default(now())
+  violations  TachographViolation[]
+  @@index([createdAt])
+  @@index([externalId])
+}
+
+model TachographViolation {
+  id              String   @id @default(uuid())
+  batchId         String
+  driverId        String?
+  driverCardNumber String?
+  vehicleId       String?
+  plate           String?
+  sourceId        String?
+  code            String?
+  type            String
+  legalReference  String?
+  severity        String?
+  startsAt        DateTime
+  endsAt          DateTime?
+  durationMinutes Int?
+  description     String?
+  acknowledgedAt  DateTime?
+  raw             Json?
+  createdAt       DateTime @default(now())
+  batch           DddAnalysisBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  @@index([driverCardNumber, startsAt])
+  @@index([driverId, startsAt])
+  @@index([plate, startsAt])
+  @@index([severity, startsAt])
 }
