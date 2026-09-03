@@ -22,8 +22,9 @@ export function AddVehicleDrawer({open,onClose,onCreated}:{open:boolean;onClose:
       const response=await fetch('/api/vehicles',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       const result=await response.json().catch(()=>({}));
       if(!response.ok) throw new Error(result.error || 'Fahrzeug konnte nicht angelegt werden.');
-      await onCreated?.();
+      if(onCreated) await onCreated();
       onClose();
+      if(!onCreated) window.location.reload();
     }catch(error){setMessage(error instanceof Error?error.message:'Fehler beim Anlegen.')}finally{setSaving(false)}
   }
 
