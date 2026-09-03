@@ -8,8 +8,8 @@
     "start": "next start -H 0.0.0.0 -p 3000"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "3.883.0",
-    "@aws-sdk/s3-request-presigner": "3.883.0",
+    "@aws-sdk/client-s3": "3.1125.0",
+    "@aws-sdk/s3-request-presigner": "3.1125.0",
     "@lts/db": "*",
     "bcryptjs": "3.0.2",
     "jose": "6.1.0",
