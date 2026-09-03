@@ -1,8 +1,10 @@
 export type DeadlineState = 'ok' | 'warning' | 'critical' | 'none';
+export type VehicleCategory = 'TRUCK' | 'VAN' | 'TRAILER' | 'SEMITRAILER' | 'OTHER';
 
 export type Vehicle = {
   id?: string;
   plate: string;
+  category?: VehicleCategory;
   vehicle: string;
   firstRegistration: string;
   location: string;
