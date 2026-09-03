@@ -14,7 +14,7 @@ const sections = [
   ]},
   { title:'FAHRER', items:[{label:'Fahrer',icon:UserRound,href:'#'},{label:'Führerscheine',icon:IdCard,href:'#'},{label:'Fahrerkarten',icon:CreditCard,href:'#'}]},
   { title:'KOMMUNIKATION', items:[{label:'WhatsApp (Chatwoot)',icon:MessageCircle,href:'#'},{label:'Vorlagen',icon:FileText,href:'#'},{label:'Automationen',icon:Workflow,href:'#'}]},
-  { title:'DOKUMENTE', items:[{label:'Dokumente',icon:FolderOpen,href:'#'},{label:'Vorlagen',icon:FileText,href:'#'}]},
+  { title:'DOKUMENTE', items:[{label:'Dokumente',icon:FolderOpen,href:'/documents'},{label:'Vorlagen',icon:FileText,href:'#'}]},
   { title:'BERICHTE', items:[{label:'Auswertungen',icon:BarChart3,href:'#'},{label:'Kosten',icon:ReceiptEuro,href:'#'}]},
   { title:'INTEGRATIONEN', items:[{label:'Samsara',icon:MapPin,href:'#'},{label:'Urlaubsportal',icon:CalendarRange,href:'#'},{label:'n8n Workflows',icon:Boxes,href:'#'},{label:'Meta (WhatsApp)',icon:Bot,href:'#'}]}
 ];
