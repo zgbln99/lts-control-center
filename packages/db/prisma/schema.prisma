@@ -73,6 +73,7 @@ model Vehicle {
   rateRaw               String?
   inventoryNumber       String?
   notes                 String?
+  lifecycleNote         String?
   sourceRaw             Json?
 
   // LTS Control Center extensions
