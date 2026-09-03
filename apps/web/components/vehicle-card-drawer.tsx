@@ -1,0 +1,216 @@
+'use client';
+
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { CalendarDays, Check, ExternalLink, FileText, Save, ShoppingCart, X } from 'lucide-react';
+
+type Deadline={id:string;type:string;dueDate:string;completedAt:string|null;optional:boolean;notes:string|null};
+type DocumentRow={id:string;filename:string;type:string|null;mimeType:string|null;sizeBytes:string|null;source:string};
+type VehicleDetailResponse={
+  id:string;plate:string;manufacturer:string|null;model:string|null;displayName:string|null;firstRegistration:string|null;
+  insuranceNumber:string|null;taxNumber:string|null;inventoryNumber:string|null;grossVehicleWeightKg:number|null;
+  financingEnd:string|null;financingEndRaw:string|null;monthlyRate:string|null;rateRaw:string|null;
+  cameraInstalled:boolean|null;wrapped:boolean|null;wrapType:string|null;notes:string|null;documentsNotes:string|null;
+  vin:string|null;registeredAt:string|null;lifecycle:string;telemetry?:{odometerKm:number|null}|null;
+  deadlines:Deadline[];documents:DocumentRow[];
+};
+
+type Props={
+  vehicleId?:string;
+  plate:string;
+  open:boolean;
+  onClose:()=>void;
+  onChanged?:()=>void|Promise<void>;
+};
+
+const deadlineLabels:Record<string,string>={TUV:'TÜV',SP:'SP',TACHO:'Tachoprüfung',UVV:'UVV'};
+
+function dateInput(value:string|null|undefined){
+  if(!value) return '';
+  const date=new Date(value);
+  if(Number.isNaN(date.getTime())) return '';
+  return date.toISOString().slice(0,10);
+}
+
+function currentDeadline(rows:Deadline[],type:string){
+  return rows.find(row=>row.type===type&&!row.completedAt) ?? null;
+}
+
+function triState(value:boolean|null){
+  return value===true?'true':value===false?'false':'';
+}
+
+function formatBytes(value:string|null){
+  if(!value) return '—';
+  const bytes=Number(value);
+  if(!Number.isFinite(bytes)) return '—';
+  if(bytes<1024*1024) return `${Math.max(1,Math.round(bytes/1024))} KB`;
+  return `${(bytes/1024/1024).toFixed(1)} MB`;
+}
+
+export function VehicleCardDrawer({vehicleId,plate,open,onClose,onChanged}:Props){
+  const [detail,setDetail]=useState<VehicleDetailResponse|null>(null);
+  const [loading,setLoading]=useState(false);
+  const [saving,setSaving]=useState(false);
+  const [message,setMessage]=useState('');
+
+  async function load(){
+    if(!vehicleId) return;
+    setLoading(true); setMessage('');
+    try{
+      const response=await fetch(`/api/vehicles/${vehicleId}`);
+      if(!response.ok) throw new Error('Fahrzeugdaten konnten nicht geladen werden.');
+      setDetail(await response.json());
+    }catch(error){setMessage(error instanceof Error?error.message:'Fehler beim Laden.')}finally{setLoading(false)}
+  }
+
+  useEffect(()=>{if(open) void load()},[open,vehicleId]);
+
+  const current=useMemo(()=>({
+    TUV:detail?currentDeadline(detail.deadlines,'TUV'):null,
+    SP:detail?currentDeadline(detail.deadlines,'SP'):null,
+    TACHO:detail?currentDeadline(detail.deadlines,'TACHO'):null,
+    UVV:detail?currentDeadline(detail.deadlines,'UVV'):null,
+  }),[detail]);
+
+  if(!open) return null;
+
+  async function saveVehicle(event:FormEvent<HTMLFormElement>){
+    event.preventDefault();
+    if(!vehicleId||!detail) return;
+    const form=new FormData(event.currentTarget);
+    setSaving(true); setMessage('');
+    try{
+      const payload={
+        manufacturer:form.get('manufacturer'),model:form.get('model'),displayName:form.get('displayName'),
+        firstRegistration:form.get('firstRegistration'),insuranceNumber:form.get('insuranceNumber'),taxNumber:form.get('taxNumber'),
+        inventoryNumber:form.get('inventoryNumber'),grossVehicleWeightKg:form.get('grossVehicleWeightKg'),
+        financingEnd:form.get('financingEnd'),monthlyRate:form.get('monthlyRate'),
+        cameraInstalled:form.get('cameraInstalled'),wrapped:form.get('wrapped'),wrapType:form.get('wrapType'),
+        notes:form.get('notes'),documentsNotes:form.get('documentsNotes'),
+      };
+      const response=await fetch(`/api/vehicles/${vehicleId}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      if(!response.ok) throw new Error('Fahrzeug konnte nicht gespeichert werden.');
+
+      for(const type of ['TUV','SP','TACHO','UVV']){
+        const dueDate=String(form.get(`deadline_${type}`) ?? '');
+        const oldDate=dateInput(current[type as keyof typeof current]?.dueDate);
+        if(!dueDate||dueDate===oldDate) continue;
+        const deadlineResponse=await fetch(`/api/vehicles/${vehicleId}/deadlines`,{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({type,dueDate,replaceCurrent:true}),
+        });
+        if(!deadlineResponse.ok) throw new Error(`${deadlineLabels[type]} konnte nicht gespeichert werden.`);
+      }
+
+      setMessage('Änderungen gespeichert.');
+      await load();
+      await onChanged?.();
+    }catch(error){setMessage(error instanceof Error?error.message:'Fehler beim Speichern.')}finally{setSaving(false)}
+  }
+
+  async function openDocument(id:string){
+    try{
+      const response=await fetch(`/api/documents/${id}/open`);
+      if(!response.ok) throw new Error('Dokument konnte nicht geöffnet werden.');
+      const payload=await response.json();
+      window.open(payload.url,'_blank','noopener,noreferrer');
+    }catch(error){setMessage(error instanceof Error?error.message:'Dokument konnte nicht geöffnet werden.')}
+  }
+
+  async function archiveVehicle(event:FormEvent<HTMLFormElement>){
+    event.preventDefault();
+    if(!vehicleId) return;
+    const form=new FormData(event.currentTarget);
+    const lifecycle=String(form.get('lifecycle') ?? 'SOLD');
+    if(!window.confirm(`${plate} wirklich aus dem aktiven Fuhrpark entfernen?`)) return;
+    setSaving(true); setMessage('');
+    try{
+      const response=await fetch(`/api/vehicles/${vehicleId}/archive`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          lifecycle,soldAt:form.get('soldAt'),soldTo:form.get('soldTo'),soldPrice:form.get('soldPrice'),
+          soldMileageKm:form.get('soldMileageKm'),lifecycleNote:form.get('lifecycleNote'),
+        }),
+      });
+      if(!response.ok) throw new Error('Fahrzeug konnte nicht archiviert werden.');
+      await onChanged?.();
+      onClose();
+    }catch(error){setMessage(error instanceof Error?error.message:'Fehler beim Archivieren.')}finally{setSaving(false)}
+  }
+
+  return <div className="drawerBackdrop" onMouseDown={event=>{if(event.target===event.currentTarget) onClose()}}>
+    <aside className="vehicleDrawer" aria-label={`Fahrzeug ${plate}`}>
+      <header className="drawerHead">
+        <div><span>Fahrzeugkarte</span><h2>{plate}</h2><p>{detail?.displayName || [detail?.manufacturer,detail?.model].filter(Boolean).join(' ') || 'Fahrzeugdaten'}</p></div>
+        <button onClick={onClose} aria-label="Schließen"><X size={19}/></button>
+      </header>
+
+      {loading&&!detail?<div className="drawerLoading">Fahrzeug wird geladen ...</div>:detail?<div className="drawerScroll">
+        <form onSubmit={saveVehicle}>
+          <section className="drawerSection">
+            <div className="drawerSectionHead"><div><h3>Stammdaten</h3><p>Basisdaten aus Kfz-Liste und manueller Pflege</p></div></div>
+            <div className="drawerFormGrid">
+              <label><span>Hersteller</span><input name="manufacturer" defaultValue={detail.manufacturer ?? ''}/></label>
+              <label><span>Modell</span><input name="model" defaultValue={detail.model ?? ''}/></label>
+              <label className="wide"><span>Anzeigename</span><input name="displayName" defaultValue={detail.displayName ?? ''} placeholder="z. B. Mercedes-Benz Atego"/></label>
+              <label><span>Erstzulassung</span><input type="date" name="firstRegistration" defaultValue={dateInput(detail.firstRegistration)}/></label>
+              <label><span>Gesamtmasse (kg)</span><input inputMode="numeric" name="grossVehicleWeightKg" defaultValue={detail.grossVehicleWeightKg ?? ''}/></label>
+              <label><span>Inventarnummer</span><input name="inventoryNumber" defaultValue={detail.inventoryNumber ?? ''}/></label>
+              <label><span>Versicherungsnummer</span><input name="insuranceNumber" defaultValue={detail.insuranceNumber ?? ''}/></label>
+              <label className="wide"><span>Kfz-Steuernummer</span><input name="taxNumber" defaultValue={detail.taxNumber ?? ''}/></label>
+            </div>
+            <div className="readOnlyLine"><span>VIN</span><strong>{detail.vin || '—'}</strong></div>
+          </section>
+
+          <section className="drawerSection">
+            <div className="drawerSectionHead"><div><h3>Ausstattung</h3><p>Kamera und Fahrzeugbeklebung</p></div></div>
+            <div className="drawerFormGrid">
+              <label><span>Kamera</span><select name="cameraInstalled" defaultValue={triState(detail.cameraInstalled)}><option value="">Nicht erfasst</option><option value="true">Vorhanden</option><option value="false">Nicht vorhanden</option></select></label>
+              <label><span>Beklebung</span><select name="wrapped" defaultValue={triState(detail.wrapped)}><option value="">Nicht erfasst</option><option value="true">Beklebt</option><option value="false">Nicht beklebt</option></select></label>
+              <label className="wide"><span>Art der Beklebung</span><input name="wrapType" defaultValue={detail.wrapType ?? ''} placeholder="z. B. LTS Standard"/></label>
+            </div>
+          </section>
+
+          <section className="drawerSection">
+            <div className="drawerSectionHead"><div><h3>Termine</h3><p>Offene Fahrzeugfristen · UVV bleibt optional</p></div><CalendarDays size={17}/></div>
+            <div className="deadlineEditGrid">
+              {(['TUV','SP','TACHO','UVV'] as const).map(type=><label key={type}><span>{deadlineLabels[type]}{type==='UVV'&&<small>optional</small>}</span><input type="date" name={`deadline_${type}`} defaultValue={dateInput(current[type]?.dueDate)}/></label>)}
+            </div>
+          </section>
+
+          <section className="drawerSection">
+            <div className="drawerSectionHead"><div><h3>Finanzierung & Notizen</h3><p>Ergänzungen zur ursprünglichen Kfz-Liste</p></div></div>
+            <div className="drawerFormGrid">
+              <label><span>Vertragsende</span><input type="date" name="financingEnd" defaultValue={dateInput(detail.financingEnd)}/></label>
+              <label><span>Monatliche Rate (€)</span><input inputMode="decimal" name="monthlyRate" defaultValue={detail.monthlyRate ?? ''}/></label>
+              <label className="wide"><span>Besonderheiten</span><textarea name="notes" rows={3} defaultValue={detail.notes ?? ''}/></label>
+              <label className="wide"><span>Unterlagen / Alt-Notiz</span><textarea name="documentsNotes" rows={3} defaultValue={detail.documentsNotes ?? ''}/></label>
+            </div>
+          </section>
+
+          <div className="drawerStickySave"><span>{message}</span><button className="greenBtn" disabled={saving}><Save size={14}/>{saving?'Speichern ...':'Änderungen speichern'}</button></div>
+        </form>
+
+        <section className="drawerSection">
+          <div className="drawerSectionHead"><div><h3>Dokumente</h3><p>{detail.documents.length} Dateien in der Fahrzeugkartothek</p></div><FileText size={17}/></div>
+          <div className="drawerDocuments">{detail.documents.length?detail.documents.map(document=><div className="drawerDocument" key={document.id}><span className="documentIcon"><FileText size={15}/></span><div><strong>{document.filename}</strong><small>{document.type || 'Dokument'} · {formatBytes(document.sizeBytes)}</small></div><button type="button" onClick={()=>void openDocument(document.id)} disabled={document.source!=='MEGA_S4'}>{document.source==='MEGA_S4'?<ExternalLink size={14}/>:<Check size={14}/>}</button></div>):<p className="drawerEmpty">Noch keine Dokumente synchronisiert.</p>}</div>
+        </section>
+
+        <details className="archiveDetails">
+          <summary><ShoppingCart size={16}/> Verkauf / Archiv</summary>
+          <form className="archiveDrawerForm" onSubmit={archiveVehicle}>
+            <div className="drawerFormGrid">
+              <label><span>Vorgang</span><select name="lifecycle" defaultValue="SOLD"><option value="SOLD">Verkauft</option><option value="ARCHIVED">Abgemeldet / Archiv</option><option value="RETURNED">Leasing zurückgegeben</option><option value="SCRAPPED">Verschrottet</option></select></label>
+              <label><span>Datum</span><input name="soldAt" type="date" defaultValue={new Date().toISOString().slice(0,10)}/></label>
+              <label className="wide"><span>Käufer / Empfänger</span><input name="soldTo"/></label>
+              <label><span>Preis (€)</span><input name="soldPrice" inputMode="decimal"/></label>
+              <label><span>Kilometer</span><input name="soldMileageKm" inputMode="numeric" defaultValue={detail.telemetry?.odometerKm ?? ''}/></label>
+              <label className="wide"><span>Notiz</span><textarea name="lifecycleNote" rows={2}/></label>
+            </div>
+            <button className="archiveDanger" type="submit" disabled={saving}>Aus aktivem Fuhrpark entfernen</button>
+          </form>
+        </details>
+      </div>:<div className="drawerLoading">{message || 'Keine Fahrzeugdaten verfügbar.'}</div>}
+    </aside>
+  </div>
+}
