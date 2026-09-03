@@ -9,21 +9,40 @@ const sections = [
     {label:'Fahrzeuge',icon:Truck,href:'/fuhrpark'},
     {label:'Anhänger',icon:Container,href:'/fuhrpark?typ=anhaenger'},
     {label:'Termine',icon:CalendarDays,href:'/fuhrpark/termine'},
-    {label:'Werkstatt',icon:Wrench,href:'#'},
+    {label:'Werkstatt',icon:Wrench,href:'/fuhrpark/werkstatt'},
     {label:'Verkauf / Archiv',icon:Archive,href:'/fuhrpark/archiv'},
   ]},
-  { title:'FAHRER', items:[{label:'Fahrer',icon:UserRound,href:'#'},{label:'Führerscheine',icon:IdCard,href:'#'},{label:'Fahrerkarten',icon:CreditCard,href:'#'}]},
-  { title:'KOMMUNIKATION', items:[{label:'WhatsApp (Chatwoot)',icon:MessageCircle,href:'/integrationen#chatwoot'},{label:'Vorlagen',icon:FileText,href:'#'},{label:'Automationen',icon:Workflow,href:'/integrationen#n8n'}]},
-  { title:'DOKUMENTE', items:[{label:'Dokumente',icon:FolderOpen,href:'/documents'},{label:'Vorlagen',icon:FileText,href:'#'}]},
-  { title:'BERICHTE', items:[{label:'Auswertungen',icon:BarChart3,href:'#'},{label:'Kosten',icon:ReceiptEuro,href:'#'}]},
-  { title:'INTEGRATIONEN', items:[{label:'Samsara',icon:MapPin,href:'/integrationen#samsara'},{label:'Urlaubsportal',icon:CalendarRange,href:'/integrationen#urlaub'},{label:'n8n Workflows',icon:Boxes,href:'/integrationen#n8n'},{label:'Meta (WhatsApp)',icon:Bot,href:'/integrationen#meta'}]}
+  { title:'FAHRER', items:[
+    {label:'Fahrer',icon:UserRound,href:'/fahrer'},
+    {label:'Führerscheine',icon:IdCard,href:'/fahrer/fuehrerscheine'},
+    {label:'Fahrerkarten',icon:CreditCard,href:'/fahrer/fahrerkarten'}
+  ]},
+  { title:'KOMMUNIKATION', items:[
+    {label:'WhatsApp (Chatwoot)',icon:MessageCircle,href:'/kommunikation/whatsapp'},
+    {label:'Vorlagen',icon:FileText,href:'/kommunikation/vorlagen'},
+    {label:'Automationen',icon:Workflow,href:'/kommunikation/automationen'}
+  ]},
+  { title:'DOKUMENTE', items:[
+    {label:'Dokumente',icon:FolderOpen,href:'/documents'},
+    {label:'Vorlagen',icon:FileText,href:'/documents/vorlagen'}
+  ]},
+  { title:'BERICHTE', items:[
+    {label:'Auswertungen',icon:BarChart3,href:'/berichte/auswertungen'},
+    {label:'Kosten',icon:ReceiptEuro,href:'/berichte/kosten'}
+  ]},
+  { title:'INTEGRATIONEN', items:[
+    {label:'Samsara',icon:MapPin,href:'/integrationen#samsara'},
+    {label:'Urlaubsportal',icon:CalendarRange,href:'/integrationen#urlaub'},
+    {label:'n8n Workflows',icon:Boxes,href:'/integrationen#n8n'},
+    {label:'Meta (WhatsApp)',icon:Bot,href:'/integrationen#meta'}
+  ]}
 ];
 
 function isActive(pathname:string,href:string){
   if(href==='/fuhrpark') return pathname==='/fuhrpark';
-  if(href.startsWith('/fuhrpark?')) return false;
+  if(href.startsWith('/fuhrpark?')) return pathname==='/fuhrpark';
   if(href.startsWith('/integrationen')) return pathname==='/integrationen';
-  return href!=='#' && pathname===href;
+  return pathname===href||pathname.startsWith(`${href}/`);
 }
 
 export function Sidebar(){
@@ -33,6 +52,6 @@ export function Sidebar(){
     <nav className="navScroll">
       {sections.map((s,idx)=><div className="navSection" key={idx}>{s.title && <div className="navTitle">{s.title}</div>}{s.items.map(i=>{const Icon=i.icon; const active=isActive(pathname,i.href); return <Link href={i.href} key={i.label} className={'navItem '+(active?'navItemActive':'')}><Icon size={17}/><span>{i.label}</span></Link>})}</div>)}
     </nav>
-    <div className="sidebarBottom"><Link href="/integrationen" className="navItem"><Settings size={17}/><span>Einstellungen</span></Link></div>
+    <div className="sidebarBottom"><Link href="/settings" className={'navItem '+(pathname.startsWith('/settings')?'navItemActive':'')}><Settings size={17}/><span>Einstellungen</span></Link></div>
   </aside>
 }
