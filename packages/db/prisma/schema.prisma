@@ -1,10 +1,46 @@
-generator client { provider = "prisma-client-js" }
-datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+generator client {
+  provider = "prisma-client-js"
+}
 
-enum VehicleCategory { TRUCK VAN TRAILER SEMITRAILER OTHER }
-enum DeadlineType { TUV SP TACHO UVV SERVICE INSURANCE LEASING OTHER }
-enum DocumentSource { GOOGLE_DRIVE_IMPORT MEGA_S4 MANUAL SAMSARA SYSTEM }
-enum VehicleLifecycle { ACTIVE SOLD RETURNED SCRAPPED ARCHIVED }
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum VehicleCategory {
+  TRUCK
+  VAN
+  TRAILER
+  SEMITRAILER
+  OTHER
+}
+
+enum DeadlineType {
+  TUV
+  SP
+  TACHO
+  UVV
+  SERVICE
+  INSURANCE
+  LEASING
+  OTHER
+}
+
+enum DocumentSource {
+  GOOGLE_DRIVE_IMPORT
+  MEGA_S4
+  MANUAL
+  SAMSARA
+  SYSTEM
+}
+
+enum VehicleLifecycle {
+  ACTIVE
+  SOLD
+  RETURNED
+  SCRAPPED
+  ARCHIVED
+}
 
 model Vehicle {
   id                    String           @id @default(uuid())
@@ -78,7 +114,7 @@ model VehicleTelemetry {
   raw            Json?
   syncedAt       DateTime @default(now()) @updatedAt
 
-  vehicle        Vehicle  @relation(fields:[vehicleId], references:[id], onDelete:Cascade)
+  vehicle        Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 
   @@index([lastSeenAt])
   @@index([geofenceName])
@@ -94,7 +130,7 @@ model VehicleDeadline {
   notes       String?
   optional    Boolean      @default(false)
   documentId  String?
-  vehicle     Vehicle      @relation(fields:[vehicleId], references:[id], onDelete:Cascade)
+  vehicle     Vehicle      @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -115,7 +151,7 @@ model VehicleDocument {
   documentDate DateTime?
   expiresAt    DateTime?
   source       DocumentSource @default(MEGA_S4)
-  vehicle      Vehicle        @relation(fields:[vehicleId], references:[id], onDelete:Cascade)
+  vehicle      Vehicle        @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
@@ -131,7 +167,7 @@ model StorageFolderMapping {
   normalizedPlate String?
   confidence      Float?
   confirmed       Boolean  @default(false)
-  vehicle         Vehicle  @relation(fields:[vehicleId], references:[id], onDelete:Cascade)
+  vehicle         Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   createdAt       DateTime @default(now())
 
   @@index([vehicleId])
@@ -146,7 +182,7 @@ model VehicleHookLoadPeriod {
   startsAt  DateTime
   endsAt    DateTime?
   sourceRaw Json?
-  vehicle   Vehicle? @relation(fields:[vehicleId], references:[id], onDelete:SetNull)
+  vehicle   Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
 
   @@index([vehicleId, startsAt])
