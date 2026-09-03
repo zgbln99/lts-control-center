@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Truck, Container, CalendarDays, Wrench, Archive, UserRound, IdCard, CreditCard, MessageCircle, FileText, Workflow, FolderOpen, BarChart3, ReceiptEuro, MapPin, CalendarRange, Boxes, Settings, Bot } from 'lucide-react';
+import { LayoutDashboard, Truck, Container, CalendarDays, Wrench, Archive, UserRound, IdCard, CreditCard, MessageCircle, FileText, Workflow, FolderOpen, BarChart3, ReceiptEuro, MapPin, CalendarRange, Boxes, Settings, Bot, ShieldAlert } from 'lucide-react';
 
 const sections = [
   { title:'', items:[{label:'Dashboard', icon:LayoutDashboard, href:'/dashboard'}]},
@@ -15,7 +15,8 @@ const sections = [
   { title:'FAHRER', items:[
     {label:'Fahrer',icon:UserRound,href:'/fahrer'},
     {label:'Führerscheine',icon:IdCard,href:'/fahrer/fuehrerscheine'},
-    {label:'Fahrerkarten',icon:CreditCard,href:'/fahrer/fahrerkarten'}
+    {label:'Fahrerkarten',icon:CreditCard,href:'/fahrer/fahrerkarten'},
+    {label:'Verstoßauswertung',icon:ShieldAlert,href:'/fahrer/verstoesse'}
   ]},
   { title:'KOMMUNIKATION', items:[
     {label:'WhatsApp (Chatwoot)',icon:MessageCircle,href:'/kommunikation/whatsapp'},
