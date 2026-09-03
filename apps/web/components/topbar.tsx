@@ -5,15 +5,22 @@ import { useEffect, useRef, useState } from 'react';
 import { Archive, Bell, FileText, Search, Sun, Truck, X } from 'lucide-react';
 
 type SearchResult={type:'vehicle'|'document';id:string;title:string;subtitle:string;lifecycle:string;href:string};
-
+type SignedInUser={name:string;email:string;role:string};
 type TopbarProps={title?:string;subtitle?:string;searchPlaceholder?:string};
+
+const roleLabels:Record<string,string>={ADMIN:'Administrator',FUHRPARK:'Fuhrpark',PERSONAL:'Personal',DISPOSITION:'Disposition',READ_ONLY:'Lesen'};
 
 export function Topbar({title='Fuhrpark',subtitle='Übersicht aller Fahrzeuge',searchPlaceholder='Fahrzeug suchen (Kennzeichen, VIN, Inventarnr. ...)'}:TopbarProps){
   const [open,setOpen]=useState(false);
   const [query,setQuery]=useState('');
   const [results,setResults]=useState<SearchResult[]>([]);
   const [loading,setLoading]=useState(false);
+  const [user,setUser]=useState<SignedInUser|null>(null);
   const inputRef=useRef<HTMLInputElement>(null);
+
+  useEffect(()=>{
+    fetch('/api/auth/me').then(response=>response.ok?response.json():null).then(payload=>{if(payload?.user)setUser(payload.user)}).catch(()=>{});
+  },[]);
 
   useEffect(()=>{
     const handler=(event:KeyboardEvent)=>{
@@ -42,12 +49,19 @@ export function Topbar({title='Fuhrpark',subtitle='Übersicht aller Fahrzeuge',s
   },[query]);
 
   function close(){setOpen(false);setQuery('');setResults([])}
+  async function logout(){
+    if(!window.confirm('Aus dem LTS Control Center abmelden?')) return;
+    await fetch('/api/auth/logout',{method:'POST'}).catch(()=>null);
+    window.location.href='/login';
+  }
+
+  const initials=user?.name?.split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase() || 'L';
 
   return <>
   <header className="topbar">
     <div><h1>{title}</h1><p>{subtitle}</p></div>
     <button className="topSearch" type="button" onClick={()=>setOpen(true)}><Search size={17}/><span>{searchPlaceholder}</span><kbd>⌘ K</kbd></button>
-    <div className="topActions"><button><Sun size={18}/></button><button className="bell"><Bell size={18}/><em>8</em></button><div className="user"><div className="avatar">C</div><div><strong>Clemens</strong><span>Administrator</span></div></div></div>
+    <div className="topActions"><button><Sun size={18}/></button><button className="bell"><Bell size={18}/><em>8</em></button><div className="user" role="button" tabIndex={0} title="Klicken zum Abmelden" onClick={()=>void logout()} onKeyDown={event=>{if(event.key==='Enter')void logout()}}><div className="avatar">{initials}</div><div><strong>{user?.name || 'Control Center'}</strong><span>{user?roleLabels[user.role] || user.role:'Angemeldet'}</span></div></div></div>
   </header>
   {open&&<div className="globalSearchBackdrop" onMouseDown={event=>{if(event.currentTarget===event.target) close()}}>
     <section className="globalSearchPanel">
