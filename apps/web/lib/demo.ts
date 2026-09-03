@@ -14,8 +14,8 @@ export type Vehicle = {
   spState?: DeadlineState;
   tacho?: string;
   tachoState?: DeadlineState;
-  camera: boolean;
-  wrapped: boolean;
+  camera: boolean | null;
+  wrapped: boolean | null;
   samsara: boolean;
   vin: string;
   inventory: string;
