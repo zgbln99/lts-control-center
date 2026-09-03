@@ -24,6 +24,17 @@ function excelDateToIso(value) {
   return `${String(d.y).padStart(4, '0')}-${String(d.m).padStart(2, '0')}-${String(d.d).padStart(2, '0')}`;
 }
 
+function germanTextDateToIso(value) {
+  const text = cleanString(value);
+  if (!text) return null;
+  const matches = [...text.matchAll(/\b(\d{1,2})\.(\d{1,2})\.(\d{2,4})\b/g)];
+  if (!matches.length) return null;
+  const [, day, month, yearRaw] = matches[matches.length - 1];
+  const year = yearRaw.length === 2 ? 2000 + Number(yearRaw) : Number(yearRaw);
+  if (!year || Number(month) < 1 || Number(month) > 12 || Number(day) < 1 || Number(day) > 31) return null;
+  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
 function asDecimal(value) {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
@@ -80,6 +91,33 @@ function parsePlateExpression(rawValue) {
   };
 }
 
+function parseLifecycle(row) {
+  const note = cleanString(row['__col_16']);
+  if (!note) return { lifecycle: 'ACTIVE', lifecycleNote: null, soldAt: null, soldTo: null };
+
+  const lower = note.toLowerCase();
+  if (lower.includes('verkauft')) {
+    const buyerMatch = note.match(/verkauft\s+an\s+(.+?)(?:,\s*(?:am\s*)?\d{1,2}\.\d{1,2}\.\d{2,4}|,\s*(?:re|rechnung)\b|$)/i);
+    return {
+      lifecycle: 'SOLD',
+      lifecycleNote: note,
+      soldAt: germanTextDateToIso(note),
+      soldTo: cleanString(buyerMatch?.[1]),
+    };
+  }
+
+  if (lower.includes('abgemeldet')) {
+    return {
+      lifecycle: 'ARCHIVED',
+      lifecycleNote: note,
+      soldAt: null,
+      soldTo: null,
+    };
+  }
+
+  return { lifecycle: 'ARCHIVED', lifecycleNote: note, soldAt: null, soldTo: null };
+}
+
 function findHeaderRow(rows, expectedHeader) {
   const index = rows.findIndex(row => row.some(cell => cleanString(cell) === expectedHeader));
   if (index < 0) throw new Error(`Could not find header '${expectedHeader}'`);
@@ -107,6 +145,7 @@ const vehicles = rawFleet.map(row => {
   const registeredAtIso = excelDateToIso(row['angemeldet am']);
   const firstRegistrationIso = excelDateToIso(row['Erstzulassung']);
   const numericRate = asDecimal(row['Rate']);
+  const lifecycle = parseLifecycle(row);
 
   return {
     sourcePosition: asInteger(row['Pos.']),
@@ -129,6 +168,10 @@ const vehicles = rawFleet.map(row => {
     rateRaw: numericRate === null ? cleanString(row['Rate']) : null,
     inventoryNumber: asIdentifier(row['Inventarnummer']),
     notes: cleanString(row['Besonderheiten']),
+    lifecycle: lifecycle.lifecycle,
+    lifecycleNote: lifecycle.lifecycleNote,
+    soldAt: lifecycle.soldAt,
+    soldTo: lifecycle.soldTo,
     sourceRaw: row,
   };
 });
@@ -160,6 +203,9 @@ const result = {
   sourceFile: path.basename(input),
   stats: {
     vehicles: vehicles.length,
+    activeVehicles: vehicles.filter(v => v.lifecycle === 'ACTIVE').length,
+    soldVehicles: vehicles.filter(v => v.lifecycle === 'SOLD').length,
+    archivedVehicles: vehicles.filter(v => v.lifecycle === 'ARCHIVED').length,
     vehiclesWithAliases: vehicles.filter(v => v.plateAliases.length > 1).length,
     hookLoadPeriods: hookLoadPeriods.length,
     duplicateCanonicalPlates,
@@ -172,6 +218,7 @@ fs.mkdirSync(path.dirname(output), { recursive: true });
 fs.writeFileSync(output, JSON.stringify(result, null, 2));
 
 console.log(`Imported ${result.stats.vehicles} vehicle rows.`);
+console.log(`Active: ${result.stats.activeVehicles}, sold: ${result.stats.soldVehicles}, archived: ${result.stats.archivedVehicles}.`);
 console.log(`Historical plate aliases: ${result.stats.vehiclesWithAliases}.`);
 console.log(`Hakenlast periods: ${result.stats.hookLoadPeriods}.`);
 console.log(`Preview written to ${output}`);
