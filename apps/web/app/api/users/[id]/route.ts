@@ -1,0 +1,8 @@
+import { NextRequest, NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
+import { prisma } from '@lts/db';
+import { audit } from '@/lib/audit';
+import { cleanString, parseBoolean } from '@/lib/input';
+
+export async function PATCH(request:NextRequest,{params}:{params:Promise<{id:string}>}){const {id}=await params;try{const body=await request.json();const data:any={};if('email' in body)data.email=String(body.email).trim().toLowerCase();for(const key of ['name'])if(key in body)data[key]=cleanString(body[key]);if('role' in body)data.role=cleanString(body.role)||'READ_ONLY';if('active' in body)data.active=parseBoolean(body.active)??true;if(body.password){const password=String(body.password);if(password.length<10)throw new Error('Passwort muss mindestens 10 Zeichen haben.');data.passwordHash=await bcrypt.hash(password,12)}const user=await prisma.user.update({where:{id},data,select:{id:true,email:true,name:true,role:true,active:true,lastLoginAt:true,updatedAt:true}});await audit(request,'UPDATE','User',id,{fields:Object.keys(data).filter(key=>key!=='passwordHash')});return NextResponse.json(user)}catch(error){return NextResponse.json({error:error instanceof Error?error.message:'Benutzer konnte nicht gespeichert werden.'},{status:400})}}
+export async function DELETE(request:NextRequest,{params}:{params:Promise<{id:string}>}){const {id}=await params;const current=request.headers.get('x-lts-user-id');if(current===id)return NextResponse.json({error:'Das eigene Konto kann nicht deaktiviert werden.'},{status:400});const user=await prisma.user.update({where:{id},data:{active:false},select:{id:true,email:true,name:true,role:true,active:true}});await audit(request,'ARCHIVE','User',id);return NextResponse.json(user)}
