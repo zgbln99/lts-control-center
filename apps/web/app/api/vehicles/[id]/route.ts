@@ -18,7 +18,14 @@ export async function GET(_:NextRequest,{params}:{params:Promise<{id:string}>}) 
     },
   });
   if(!vehicle) return NextResponse.json({error:'Vehicle not found'},{status:404});
-  return NextResponse.json(vehicle);
+
+  return NextResponse.json({
+    ...vehicle,
+    documents:vehicle.documents.map(document=>({
+      ...document,
+      sizeBytes:document.sizeBytes?.toString() ?? null,
+    })),
+  });
 }
 
 export async function PATCH(request:NextRequest,{params}:{params:Promise<{id:string}>}) {
