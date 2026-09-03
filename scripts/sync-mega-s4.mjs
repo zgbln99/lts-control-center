@@ -3,191 +3,23 @@ import path from 'node:path';
 import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { PrismaClient } from '@prisma/client';
 
-const required = ['MEGA_S4_ENDPOINT','MEGA_S4_REGION','MEGA_S4_BUCKET','MEGA_S4_ACCESS_KEY','MEGA_S4_SECRET_KEY'];
-for (const key of required) {
-  if (!process.env[key]) throw new Error(`Missing environment variable: ${key}`);
+const required=['MEGA_S4_ENDPOINT','MEGA_S4_REGION','MEGA_S4_BUCKET','MEGA_S4_ACCESS_KEY','MEGA_S4_SECRET_KEY'];for(const key of required){if(!process.env[key])throw new Error(`Missing environment variable: ${key}`)}
+const prisma=new PrismaClient();const prefix=(process.env.MEGA_S4_PREFIX??'').replace(/^\/+|\/+$/g,'');const prefixWithSlash=prefix?`${prefix}/`:'';
+const s3=new S3Client({endpoint:process.env.MEGA_S4_ENDPOINT,region:process.env.MEGA_S4_REGION,forcePathStyle:String(process.env.MEGA_S4_FORCE_PATH_STYLE??'false').toLowerCase()==='true',credentials:{accessKeyId:process.env.MEGA_S4_ACCESS_KEY,secretAccessKey:process.env.MEGA_S4_SECRET_KEY}});
+function clean(value){return String(value??'').trim().replace(/\s+/g,' ')}
+function normalizePlateFromFolder(folder){let value=clean(folder).toUpperCase();if(!value)return null;const described=value.match(/^([A-ZÄÖÜ]{1,3})[- ]([A-ZÄÖÜ]{1,2})\s*([0-9]+[A-Z]?)(?:\s+.*)?$/);if(described)return`${described[1]}-${described[2]} ${described[3]}`;value=value.replace(/\s*-\s*/g,'-').replace(/\s+/g,' ').trim();const compact=value.replace(/-/g,' ');const match=compact.match(/^([A-ZÄÖÜ]{1,3})\s+([A-ZÄÖÜ]{1,2})\s*([0-9]+[A-Z]?)$/);return match?`${match[1]}-${match[2]} ${match[3]}`:value}
+function guessDocumentType(filename){const name=filename.toLowerCase();if(/fahrzeugschein|zulassung|kfz[-_ ]?schein/.test(name))return'FAHRZEUGSCHEIN';if(/tüv|tuv|hu[-_ ]|hauptuntersuch/.test(name))return'TUV';if(/\bsp\b|sicherheitsprüf|sicherheitspruef/.test(name))return'SP';if(/tacho|tachograph|57b/.test(name))return'TACHO';if(/versicher/.test(name))return'VERSICHERUNG';if(/leasing|finanz|vertrag/.test(name))return'FINANZIERUNG';if(/rechnung|invoice/.test(name))return'RECHNUNG';if(/foto|photo|bild/.test(name))return'FOTO';return'SONSTIGE'}
+function mimeFromFilename(filename){const ext=path.extname(filename).toLowerCase();return({'.pdf':'application/pdf','.jpg':'image/jpeg','.jpeg':'image/jpeg','.png':'image/png','.webp':'image/webp','.doc':'application/msword','.docx':'application/vnd.openxmlformats-officedocument.wordprocessingml.document','.xls':'application/vnd.ms-excel','.xlsx':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})[ext]??'application/octet-stream'}
+async function listAllObjects(){const objects=[];let continuationToken;do{const response=await s3.send(new ListObjectsV2Command({Bucket:process.env.MEGA_S4_BUCKET,Prefix:prefixWithSlash||undefined,ContinuationToken:continuationToken,MaxKeys:1000}));objects.push(...(response.Contents??[]).filter(item=>item.Key&&!item.Key.endsWith('/')));continuationToken=response.IsTruncated?response.NextContinuationToken:undefined}while(continuationToken);return objects}
+async function findVehicle(normalizedPlate){if(!normalizedPlate)return null;const direct=await prisma.vehicle.findUnique({where:{plate:normalizedPlate}});if(direct)return direct;return prisma.vehicle.findFirst({where:{plateAliases:{has:normalizedPlate}}})}
+async function setState(status,message,counters){await prisma.integrationState.upsert({where:{key:'MEGA_S4'},create:{key:'MEGA_S4',enabled:true,lastSyncAt:new Date(),lastStatus:status,lastMessage:message,counters},update:{enabled:true,lastSyncAt:new Date(),lastStatus:status,lastMessage:message,counters}})}
+
+async function main(){
+ const objects=await listAllObjects();const folders=new Map();for(const object of objects){const relative=object.Key.slice(prefixWithSlash.length);const [folder,...rest]=relative.split('/');if(!folder||!rest.length)continue;if(!folders.has(folder))folders.set(folder,[]);folders.get(folder).push({...object,relativeKey:rest.join('/')})}
+ let matchedFolders=0,unmatchedFolders=0,documentsCreated=0,documentsUpdated=0;const unmatched=[];
+ for(const [folder,files] of folders){const normalizedPlate=normalizePlateFromFolder(folder);const vehicle=await findVehicle(normalizedPlate);if(!vehicle){unmatchedFolders+=1;unmatched.push({folder,normalizedPlate,files:files.length});continue}matchedFolders+=1;const storagePrefix=`${prefixWithSlash}${folder}/`;await prisma.storageFolderMapping.upsert({where:{originalFolder:folder},create:{vehicleId:vehicle.id,originalFolder:folder,storagePrefix,normalizedPlate,confidence:normalizedPlate===vehicle.plate?1:0.95,confirmed:normalizedPlate===vehicle.plate},update:{vehicleId:vehicle.id,storagePrefix,normalizedPlate,confidence:normalizedPlate===vehicle.plate?1:0.95}});if(vehicle.storagePrefix!==storagePrefix)await prisma.vehicle.update({where:{id:vehicle.id},data:{storagePrefix}});for(const file of files){const storageKey=file.Key;const filename=path.basename(file.relativeKey);const existing=await prisma.vehicleDocument.findUnique({where:{storageKey},select:{id:true}});const data={vehicleId:vehicle.id,type:guessDocumentType(filename),filename,mimeType:mimeFromFilename(filename),sizeBytes:file.Size===undefined?null:BigInt(file.Size),etag:file.ETag?.replaceAll('"','')??null,source:'MEGA_S4'};if(existing){await prisma.vehicleDocument.update({where:{id:existing.id},data});documentsUpdated+=1}else{await prisma.vehicleDocument.create({data:{...data,storageKey}});documentsCreated+=1}}}
+ const counters={objects:objects.length,vehicleFolders:folders.size,matchedFolders,unmatchedFolders,documentsCreated,documentsUpdated};await setState('OK',`Matched ${matchedFolders} of ${folders.size} vehicle folders.`,counters);
+ console.log(JSON.stringify({bucket:process.env.MEGA_S4_BUCKET,prefix:prefixWithSlash,...counters,documents:{created:documentsCreated,updated:documentsUpdated},unmatched:unmatched.slice(0,100)},null,2));
 }
 
-const prisma = new PrismaClient();
-const prefix = (process.env.MEGA_S4_PREFIX ?? '').replace(/^\/+|\/+$/g,'');
-const prefixWithSlash = prefix ? `${prefix}/` : '';
-
-const s3 = new S3Client({
-  endpoint: process.env.MEGA_S4_ENDPOINT,
-  region: process.env.MEGA_S4_REGION,
-  forcePathStyle: String(process.env.MEGA_S4_FORCE_PATH_STYLE ?? 'false').toLowerCase() === 'true',
-  credentials: {
-    accessKeyId: process.env.MEGA_S4_ACCESS_KEY,
-    secretAccessKey: process.env.MEGA_S4_SECRET_KEY,
-  },
-});
-
-function clean(value) {
-  return String(value ?? '').trim().replace(/\s+/g,' ');
-}
-
-function normalizePlateFromFolder(folder) {
-  let value = clean(folder).toUpperCase();
-  if (!value) return null;
-
-  // Drop descriptive text after a valid registration, e.g. "TF-NP 2002 Antos".
-  const described = value.match(/^([A-ZÄÖÜ]{1,3})[- ]([A-ZÄÖÜ]{1,2})\s*([0-9]+[A-Z]?)(?:\s+.*)?$/);
-  if (described) return `${described[1]}-${described[2]} ${described[3]}`;
-
-  value = value.replace(/\s*-\s*/g,'-').replace(/\s+/g,' ').trim();
-  const compact = value.replace(/-/g,' ');
-  const match = compact.match(/^([A-ZÄÖÜ]{1,3})\s+([A-ZÄÖÜ]{1,2})\s*([0-9]+[A-Z]?)$/);
-  return match ? `${match[1]}-${match[2]} ${match[3]}` : value;
-}
-
-function guessDocumentType(filename) {
-  const name = filename.toLowerCase();
-  if (/fahrzeugschein|zulassung|kfz[-_ ]?schein/.test(name)) return 'FAHRZEUGSCHEIN';
-  if (/tüv|tuv|hu[-_ ]|hauptuntersuch/.test(name)) return 'TUV';
-  if (/\bsp\b|sicherheitsprüf|sicherheitspruef/.test(name)) return 'SP';
-  if (/tacho|tachograph|57b/.test(name)) return 'TACHO';
-  if (/versicher/.test(name)) return 'VERSICHERUNG';
-  if (/leasing|finanz|vertrag/.test(name)) return 'FINANZIERUNG';
-  if (/rechnung|invoice/.test(name)) return 'RECHNUNG';
-  if (/foto|photo|bild/.test(name)) return 'FOTO';
-  return 'SONSTIGE';
-}
-
-function mimeFromFilename(filename) {
-  const ext = path.extname(filename).toLowerCase();
-  return ({
-    '.pdf':'application/pdf',
-    '.jpg':'image/jpeg',
-    '.jpeg':'image/jpeg',
-    '.png':'image/png',
-    '.webp':'image/webp',
-    '.doc':'application/msword',
-    '.docx':'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    '.xls':'application/vnd.ms-excel',
-    '.xlsx':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  })[ext] ?? 'application/octet-stream';
-}
-
-async function listAllObjects() {
-  const objects = [];
-  let continuationToken;
-  do {
-    const response = await s3.send(new ListObjectsV2Command({
-      Bucket: process.env.MEGA_S4_BUCKET,
-      Prefix: prefixWithSlash || undefined,
-      ContinuationToken: continuationToken,
-      MaxKeys: 1000,
-    }));
-    objects.push(...(response.Contents ?? []).filter(item=>item.Key && !item.Key.endsWith('/')));
-    continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined;
-  } while (continuationToken);
-  return objects;
-}
-
-async function findVehicle(normalizedPlate) {
-  if (!normalizedPlate) return null;
-  const direct = await prisma.vehicle.findUnique({ where:{plate:normalizedPlate} });
-  if (direct) return direct;
-  return prisma.vehicle.findFirst({ where:{plateAliases:{has:normalizedPlate}} });
-}
-
-async function main() {
-  const objects = await listAllObjects();
-  const folders = new Map();
-
-  for (const object of objects) {
-    const relative = object.Key.slice(prefixWithSlash.length);
-    const [folder, ...rest] = relative.split('/');
-    if (!folder || !rest.length) continue;
-    if (!folders.has(folder)) folders.set(folder, []);
-    folders.get(folder).push({ ...object, relativeKey: rest.join('/') });
-  }
-
-  let matchedFolders = 0;
-  let unmatchedFolders = 0;
-  let documentsCreated = 0;
-  let documentsUpdated = 0;
-  const unmatched = [];
-
-  for (const [folder, files] of folders) {
-    const normalizedPlate = normalizePlateFromFolder(folder);
-    const vehicle = await findVehicle(normalizedPlate);
-    if (!vehicle) {
-      unmatchedFolders += 1;
-      unmatched.push({ folder, normalizedPlate, files:files.length });
-      continue;
-    }
-
-    matchedFolders += 1;
-    const storagePrefix = `${prefixWithSlash}${folder}/`;
-    await prisma.storageFolderMapping.upsert({
-      where:{originalFolder:folder},
-      create:{
-        vehicleId:vehicle.id,
-        originalFolder:folder,
-        storagePrefix,
-        normalizedPlate,
-        confidence: normalizedPlate===vehicle.plate ? 1 : 0.95,
-        confirmed: normalizedPlate===vehicle.plate,
-      },
-      update:{
-        vehicleId:vehicle.id,
-        storagePrefix,
-        normalizedPlate,
-        confidence: normalizedPlate===vehicle.plate ? 1 : 0.95,
-      },
-    });
-
-    if (vehicle.storagePrefix !== storagePrefix) {
-      await prisma.vehicle.update({where:{id:vehicle.id},data:{storagePrefix}});
-    }
-
-    for (const file of files) {
-      const storageKey = file.Key;
-      const filename = path.basename(file.relativeKey);
-      const existing = await prisma.vehicleDocument.findUnique({
-        where:{storageKey},
-        select:{id:true},
-      });
-
-      const data = {
-        vehicleId:vehicle.id,
-        type:guessDocumentType(filename),
-        filename,
-        mimeType:mimeFromFilename(filename),
-        sizeBytes:file.Size === undefined ? null : BigInt(file.Size),
-        etag:file.ETag?.replaceAll('"','') ?? null,
-        source:'MEGA_S4',
-      };
-
-      if (existing) {
-        await prisma.vehicleDocument.update({where:{id:existing.id},data});
-        documentsUpdated += 1;
-      } else {
-        await prisma.vehicleDocument.create({data:{...data,storageKey}});
-        documentsCreated += 1;
-      }
-    }
-  }
-
-  console.log(JSON.stringify({
-    bucket:process.env.MEGA_S4_BUCKET,
-    prefix:prefixWithSlash,
-    objects:objects.length,
-    vehicleFolders:folders.size,
-    matchedFolders,
-    unmatchedFolders,
-    documents:{created:documentsCreated,updated:documentsUpdated},
-    unmatched:unmatched.slice(0,100),
-  },null,2));
-}
-
-main()
-  .catch(error=>{
-    console.error(error);
-    process.exitCode=1;
-  })
-  .finally(async()=>{
-    await prisma.$disconnect();
-    s3.destroy();
-  });
+main().catch(async error=>{console.error(error);try{await setState('ERROR',String(error?.message??error).slice(0,1000),{})}catch(stateError){console.error('Could not persist MEGA S4 error state',stateError)}process.exitCode=1}).finally(async()=>{await prisma.$disconnect();s3.destroy()});
