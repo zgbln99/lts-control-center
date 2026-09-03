@@ -6,7 +6,11 @@
     "dev": "npm --workspace apps/web run dev",
     "build": "npm --workspace apps/web run build",
     "start": "npm --workspace apps/web run start",
-    "import:kfz": "node scripts/import-kfz-xlsx.mjs"
+    "db:generate": "npm --workspace packages/db run generate",
+    "db:push": "npm --workspace packages/db run push",
+    "db:studio": "npm --workspace packages/db run studio",
+    "import:kfz": "node scripts/import-kfz-xlsx.mjs",
+    "import:kfz:db": "node scripts/import-kfz-to-db.mjs"
   },
   "dependencies": {
     "xlsx": "0.18.5"
