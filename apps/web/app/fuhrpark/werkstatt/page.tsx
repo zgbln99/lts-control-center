@@ -1,0 +1,10 @@
+'use client';
+import { Sidebar } from '@/components/sidebar';
+import { Topbar } from '@/components/topbar';
+import { EntityModule } from '@/components/entity-module';
+
+export default function WerkstattPage(){return <div className="appShell"><Sidebar/><main className="main"><Topbar title="Werkstatt" subtitle="Reparaturen, Service und offene Arbeiten"/><div className="content"><EntityModule title="Werkstattaufträge" subtitle="Vom offenen Mangel bis zur abgeschlossenen Rechnung" endpoint="/api/workshop" itemsKey="orders" createLabel="Auftrag anlegen" deleteLabel="Auftrag stornieren" columns={[
+  {key:'vehicle.plate',label:'Kennzeichen'},{key:'title',label:'Auftrag'},{key:'status',label:'Status',format:'status'},{key:'priority',label:'Priorität',format:'status'},{key:'workshop',label:'Werkstatt'},{key:'dueAt',label:'Fällig',format:'date'},{key:'mileageKm',label:'Kilometer'},{key:'cost',label:'Kosten',format:'money'},{key:'invoiceNumber',label:'Rechnung'}
+]} fields={[
+  {key:'plate',label:'Kennzeichen',required:true,placeholder:'TF-LS 1234'},{key:'title',label:'Titel',required:true,placeholder:'z. B. Bremsen VA'},{key:'status',label:'Status',type:'select',options:[{value:'OPEN',label:'Offen'},{value:'PLANNED',label:'Geplant'},{value:'IN_PROGRESS',label:'In Arbeit'},{value:'WAITING_PARTS',label:'Wartet auf Teile'},{value:'DONE',label:'Erledigt'},{value:'CANCELLED',label:'Storniert'}]},{key:'priority',label:'Priorität',type:'select',options:[{value:'LOW',label:'Niedrig'},{value:'NORMAL',label:'Normal'},{value:'HIGH',label:'Hoch'},{value:'CRITICAL',label:'Kritisch'}]},{key:'workshop',label:'Werkstatt'},{key:'plannedAt',label:'Geplant am',type:'date'},{key:'dueAt',label:'Fällig am',type:'date'},{key:'mileageKm',label:'Kilometer',type:'number'},{key:'cost',label:'Kosten (€)',type:'number'},{key:'invoiceNumber',label:'Rechnungsnummer'},{key:'description',label:'Beschreibung',type:'textarea',wide:true},{key:'notes',label:'Notizen',type:'textarea',wide:true}
+]}/></div></main></div>}
