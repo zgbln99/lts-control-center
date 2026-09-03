@@ -1,5 +1,6 @@
 import './globals.css';
 import './modules.css';
+import './drawer.css';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
