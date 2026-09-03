@@ -1,5 +1,9 @@
-import { FileText, ExternalLink, Check, X } from 'lucide-react';
+'use client';
+
+import { useState } from 'react';
+import { FileText, ExternalLink, Check, X, Pencil } from 'lucide-react';
 import { DeadlineState, Vehicle } from '@/lib/demo';
+import { VehicleCardDrawer } from '@/components/vehicle-card-drawer';
 
 function deadlineClass(state: DeadlineState | undefined) {
   if (state === 'critical') return 'deadlineCard deadlineCritical';
@@ -21,12 +25,14 @@ function EquipmentState({value,positive,negative}:{value:boolean|null;positive:s
     : <strong className="redText"><X size={15}/> {negative}</strong>;
 }
 
-export function VehicleDetail({vehicle}:{vehicle:Vehicle}){
+export function VehicleDetail({vehicle,onChanged}:{vehicle:Vehicle;onChanged?:()=>void|Promise<void>}){
+ const [drawerOpen,setDrawerOpen]=useState(false);
  const docs=(vehicle.documentsNotes ?? '').split(',').map(item=>item.trim()).filter(Boolean);
- return <section className="vehicleDetail">
-   <div className="vehiclePhoto"><div className="truckIllustration"><div className="truckCab"></div><div className="truckBox"></div><div className="road"></div></div><button><FileText size={16}/>Dokumente ({vehicle.documentCount ?? 0})</button></div>
+ return <>
+ <section className="vehicleDetail">
+   <div className="vehiclePhoto"><div className="truckIllustration"><div className="truckCab"></div><div className="truckBox"></div><div className="road"></div></div><button onClick={()=>setDrawerOpen(true)}><FileText size={16}/>Dokumente ({vehicle.documentCount ?? 0})</button></div>
    <div className="vehicleMain">
-     <div className="vehicleTitle"><h2>{vehicle.plate}</h2></div><p>{vehicle.vehicle} <span>·</span> {vehicle.firstRegistration}</p>
+     <div className="vehicleTitle"><h2>{vehicle.plate}</h2><button className="vehicleEditButton" onClick={()=>setDrawerOpen(true)}><Pencil size={13}/> Bearbeiten</button></div><p>{vehicle.vehicle} <span>·</span> {vehicle.firstRegistration}</p>
      <div className="infoGrid">
        <div><span>VIN</span><strong>{vehicle.vin}</strong></div><div><span>Inventarnummer</span><strong>{vehicle.inventory}</strong></div><div><span>Versicherungsnummer</span><strong>{vehicle.insurance}</strong></div><div><span>Kfz-Steuernummer</span><strong>{vehicle.taxNumber}</strong></div><div><span>Finanzierung</span><strong>{vehicle.finance}</strong></div><div><span>Rate</span><strong>{vehicle.rate}</strong></div>
      </div>
@@ -38,7 +44,9 @@ export function VehicleDetail({vehicle}:{vehicle:Vehicle}){
      <div className="deadlineCard"><span>Kamera</span><EquipmentState value={vehicle.camera} positive="Vorhanden" negative="Nicht vorhanden"/></div>
      <div className="deadlineCard"><span>Beklebung</span><EquipmentState value={vehicle.wrapped} positive="LTS" negative="Nicht beklebt"/></div>
      <div className="samsaraBox"><h3>Samsara <em>{vehicle.samsara?'Verbunden':'Nicht verbunden'}</em></h3><div><span>Standort</span><strong>{vehicle.location}</strong></div><div><span>Letzte Aktualisierung</span><strong>{vehicle.locationAge}</strong></div><div><span>Kilometerstand</span><strong>{vehicle.mileage}</strong></div><button>In Samsara öffnen <ExternalLink size={14}/></button></div>
-     <div className="docsBox"><h3>Unterlagen vorhanden</h3>{docs.length?docs.slice(0,4).map((item,index)=><p key={`${item}-${index}`}>{item}</p>):<p className="muted">Noch keine Unterlagen synchronisiert</p>}<button>Alle Unterlagen anzeigen</button></div>
+     <div className="docsBox"><h3>Unterlagen vorhanden</h3>{docs.length?docs.slice(0,4).map((item,index)=><p key={`${item}-${index}`}>{item}</p>):<p className="muted">Noch keine Unterlagen synchronisiert</p>}<button onClick={()=>setDrawerOpen(true)}>Alle Unterlagen anzeigen</button></div>
    </div>
  </section>
+ <VehicleCardDrawer vehicleId={vehicle.id} plate={vehicle.plate} open={drawerOpen} onClose={()=>setDrawerOpen(false)} onChanged={onChanged}/>
+ </>
 }
