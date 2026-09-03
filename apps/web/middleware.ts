@@ -20,6 +20,7 @@ function requiredApiRoles(pathname:string,method:string):Role[]|null{
   const write=WRITE_METHODS.has(method);
   if(pathname.startsWith('/api/users')||pathname.startsWith('/api/settings')||pathname.startsWith('/api/audit')) return ['ADMIN'];
   if(pathname.startsWith('/api/ddd')) return ['ADMIN','FUHRPARK','PERSONAL','DISPOSITION'];
+  if(pathname.startsWith('/api/driver-documents')) return ['ADMIN','PERSONAL','DISPOSITION'];
   if(pathname.startsWith('/api/drivers')) return write?['ADMIN','PERSONAL']:['ADMIN','PERSONAL','DISPOSITION'];
   if(pathname.startsWith('/api/workshop')) return ['ADMIN','FUHRPARK'];
   if(pathname.startsWith('/api/message-templates')||pathname.startsWith('/api/automations')||pathname.startsWith('/api/integrations/chatwoot')||pathname.startsWith('/api/integrations/meta')) return ['ADMIN','DISPOSITION'];
