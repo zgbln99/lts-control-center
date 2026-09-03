@@ -4,6 +4,7 @@ import './drawer.css';
 import './integrations.css';
 import './search.css';
 import './login.css';
+import './operations.css';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
