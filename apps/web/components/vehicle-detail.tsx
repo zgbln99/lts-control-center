@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { FileText, ExternalLink, Check, X, Pencil } from 'lucide-react';
-import { DeadlineState, Vehicle } from '@/lib/demo';
+import { DeadlineState, Vehicle } from '@/lib/fleet-types';
 import { VehicleCardDrawer } from '@/components/vehicle-card-drawer';
 
 function deadlineClass(state: DeadlineState | undefined) {
