@@ -1,0 +1,87 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+
+enum VehicleCategory { TRUCK VAN TRAILER SEMITRAILER OTHER }
+enum DeadlineType { TUV SP TACHO UVV SERVICE INSURANCE LEASING OTHER }
+enum DocumentSource { GOOGLE_DRIVE_IMPORT MEGA_S4 MANUAL SAMSARA SYSTEM }
+enum VehicleLifecycle { ACTIVE SOLD RETURNED SCRAPPED ARCHIVED }
+
+model Vehicle {
+  id                String           @id @default(uuid())
+  plate             String           @unique
+  firstRegistration DateTime?
+  vin               String?          @unique
+  insuranceNumber   String?
+  taxNumber         String?
+  taxAmount         Decimal?         @db.Decimal(12,2)
+  annualTollValue   Decimal?         @db.Decimal(12,2)
+  financingNotes    String?
+  financingEnd      DateTime?
+  registeredAt      DateTime?
+  monthlyRate       Decimal?         @db.Decimal(12,2)
+  inventoryNumber   String?
+  notes             String?
+  category          VehicleCategory  @default(OTHER)
+  lifecycle         VehicleLifecycle @default(ACTIVE)
+  cameraInstalled   Boolean?
+  wrapped           Boolean?
+  wrapType          String?
+  samsaraId         String?          @unique
+  storagePrefix     String?
+  soldAt            DateTime?
+  soldTo            String?
+  soldPrice         Decimal?         @db.Decimal(12,2)
+  soldMileageKm     Int?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  deadlines         VehicleDeadline[]
+  documents         VehicleDocument[]
+  syncMappings      StorageFolderMapping[]
+}
+
+model VehicleDeadline {
+  id          String       @id @default(uuid())
+  vehicleId   String
+  type        DeadlineType
+  customType  String?
+  dueDate     DateTime
+  completedAt DateTime?
+  notes       String?
+  optional    Boolean      @default(false)
+  documentId  String?
+  vehicle     Vehicle      @relation(fields:[vehicleId], references:[id], onDelete:Cascade)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  @@index([vehicleId, dueDate])
+}
+
+model VehicleDocument {
+  id           String         @id @default(uuid())
+  vehicleId    String
+  type         String?
+  filename     String
+  storageKey   String         @unique
+  mimeType     String?
+  sizeBytes    BigInt?
+  etag         String?
+  checksum     String?
+  documentDate DateTime?
+  expiresAt    DateTime?
+  source       DocumentSource @default(MEGA_S4)
+  vehicle      Vehicle        @relation(fields:[vehicleId], references:[id], onDelete:Cascade)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  @@index([vehicleId])
+}
+
+model StorageFolderMapping {
+  id              String   @id @default(uuid())
+  vehicleId       String
+  originalFolder  String   @unique
+  storagePrefix   String
+  normalizedPlate String?
+  confidence      Float?
+  confirmed       Boolean  @default(false)
+  vehicle         Vehicle  @relation(fields:[vehicleId], references:[id], onDelete:Cascade)
+  createdAt       DateTime @default(now())
+}
