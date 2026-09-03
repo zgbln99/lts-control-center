@@ -22,7 +22,7 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-lts}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-lts_control}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://lts:change-me@postgres:5432/lts_control}
       NODE_ENV: production
     ports:
       - "${APP_PORT:-3000}:3000"
