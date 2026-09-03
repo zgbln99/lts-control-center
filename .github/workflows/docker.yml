@@ -8,8 +8,10 @@ on:
       - docker-compose.yml
       - .dockerignore
       - package.json
-      - apps/web/package.json
-      - packages/db/package.json
+      - package-lock.json
+      - apps/web/**
+      - packages/db/**
+      - scripts/**
       - .github/workflows/docker.yml
   pull_request:
     branches: [main]
@@ -18,8 +20,10 @@ on:
       - docker-compose.yml
       - .dockerignore
       - package.json
-      - apps/web/package.json
-      - packages/db/package.json
+      - package-lock.json
+      - apps/web/**
+      - packages/db/**
+      - scripts/**
       - .github/workflows/docker.yml
 
 concurrency:
