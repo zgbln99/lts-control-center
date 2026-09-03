@@ -123,6 +123,7 @@ export default function Fuhrpark(){
  const [fleet,setFleet]=useState<LoadedVehicle[]>(fallbackVehicles);
  const [selected,setSelected]=useState<Vehicle>(fallbackVehicles[3]);
  const [usingDatabase,setUsingDatabase]=useState(false);
+ const [reloadToken,setReloadToken]=useState(0);
 
  useEffect(()=>{
    const controller = new AbortController();
@@ -142,7 +143,7 @@ export default function Fuhrpark(){
        if(error?.name!=='AbortError') console.info('Using Fuhrpark demo fallback until database is available.');
      });
    return ()=>controller.abort();
- },[]);
+ },[reloadToken]);
 
  const stats=useMemo(()=>({
    total:fleet.length,
@@ -176,7 +177,7 @@ export default function Fuhrpark(){
 
  return <div className="appShell"><Sidebar/><main className="main"><Topbar/><div className="content">
    <section className="kpis">{kpis.map(k=>{const I=k.icon;return <div className="kpi" key={k.label}><div className={'kpiIcon '+k.kind}><I size={21}/></div><div><strong>{k.value}</strong><span>{k.label}</span><small>{k.sub}</small></div></div>})}</section>
-   <div className="mainGrid"><div><FleetTable vehicles={fleet} onSelect={setSelected}/><VehicleDetail vehicle={selected}/></div><aside className="rightRail">
+   <div className="mainGrid"><div><FleetTable vehicles={fleet} onSelect={setSelected}/><VehicleDetail vehicle={selected} onChanged={()=>setReloadToken(value=>value+1)}/></div><aside className="rightRail">
      <div className="railCard"><div className="railHead"><h3>Fahrzeuge live (Samsara)</h3></div><strong className="onlineText">{stats.online} online</strong><div className="miniMap"><span className="m m1">24</span><span className="m m2">13</span><span className="m m3">16</span><span className="m m4">12</span><span className="m m5">7</span><span className="m m6">29</span><span className="m m7">25</span><div className="carPin">🚚</div></div><a>Standorte anzeigen <ArrowRight size={13}/></a></div>
      <div className="railCard"><div className="railHead"><h3>Kritische Alerts</h3><a>Alle anzeigen</a></div><div className="alertRow"><span className="alertIcon redA"><TriangleAlert size={18}/></span><div><strong>{stats.tuvCritical} Fahrzeuge</strong><span>TÜV überfällig</span></div><a>Jetzt prüfen</a></div><div className="alertRow"><span className="alertIcon orangeA"><TriangleAlert size={18}/></span><div><strong>{stats.tuvWarning} Fahrzeuge</strong><span>TÜV in 30 Tagen</span></div><a>Termine prüfen</a></div><div className="alertRow"><span className="alertIcon orangeA"><Camera size={18}/></span><div><strong>{stats.withoutCamera} Fahrzeuge</strong><span>Ohne Kamera</span></div><a>Ausstattung prüfen</a></div></div>
      <div className="railCard"><div className="railHead"><h3>Nächste Termine</h3><a>Alle anzeigen</a></div>{terms.length?terms.map(r=><div className="termRow" key={r.plate+r.type+r.dueDate}><span><Clock3 size={13}/></span><div><strong>{r.plate}</strong><small>{r.type==='SP'?'Sicherheitsprüfung':r.type==='Tacho'?'Tachoprüfung':'TÜV Prüfung'}</small></div><div className="termDate"><strong>{dateFormatter.format(new Date(r.dueDate))}</strong><small>{daysText(r.dueDate)}</small></div></div>):<p className="muted">Noch keine Termine erfasst.</p>}<a className="calendarLink">Kalender öffnen <ArrowRight size={13}/></a></div>
