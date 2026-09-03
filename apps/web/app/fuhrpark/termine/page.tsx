@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Sidebar } from '@/components/sidebar';
 import { Topbar } from '@/components/topbar';
-import { CalendarDays, CheckCircle2, Clock3, Plus, Search, TriangleAlert } from 'lucide-react';
+import { CalendarDays, Check, CheckCircle2, Clock3, Plus, Search, TriangleAlert } from 'lucide-react';
 
 type DeadlineState='critical'|'warning'|'ok';
 type DeadlineRow={
@@ -32,6 +32,7 @@ export default function TerminePage(){
   const [stateFilter,setStateFilter]=useState('ALL');
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
+  const [completing,setCompleting]=useState<string|null>(null);
   const [message,setMessage]=useState('');
 
   async function load(){
@@ -85,6 +86,16 @@ export default function TerminePage(){
     }catch(error){setMessage(error instanceof Error?error.message:'Fehler beim Speichern.')}finally{setSaving(false)}
   }
 
+  async function completeDeadline(row:DeadlineRow){
+    setCompleting(row.id); setMessage('');
+    try{
+      const response=await fetch(`/api/deadlines/${row.id}/complete`,{method:'POST'});
+      if(!response.ok) throw new Error('Termin konnte nicht abgeschlossen werden.');
+      setMessage(`${row.plate} · ${labels[row.type] ?? row.type} als erledigt markiert.`);
+      await load();
+    }catch(error){setMessage(error instanceof Error?error.message:'Fehler beim Abschließen.')}finally{setCompleting(null)}
+  }
+
   return <div className="appShell"><Sidebar/><main className="main"><Topbar title="Termine" subtitle="Prüfungen, Fristen und Wiedervorlagen" searchPlaceholder="Termin oder Fahrzeug suchen ..."/><div className="content">
     <section className="kpis deadlineKpis">
       <div className="kpi"><div className="kpiIcon green"><CalendarDays size={21}/></div><div><strong>{stats.total}</strong><span>Offene Termine</span><small>gesamter Fuhrpark</small></div></div>
@@ -100,9 +111,9 @@ export default function TerminePage(){
           <select value={typeFilter} onChange={e=>setTypeFilter(e.target.value)}><option value="ALL">Alle Typen</option>{Object.entries(labels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select>
           <select value={stateFilter} onChange={e=>setStateFilter(e.target.value)}><option value="ALL">Alle Status</option><option value="critical">Überfällig</option><option value="warning">≤ 30 Tage</option><option value="ok">Später</option></select>
         </div>
-        <div className="tableWrap"><table className="moduleDataTable"><thead><tr><th>Fahrzeug</th><th>Termin</th><th>Fällig am</th><th>Status</th><th>Notiz</th></tr></thead><tbody>
-          {filtered.map(row=><tr key={row.id}><td className="plateCell"><i className={'rowState '+(row.state==='critical'?'rowCritical':row.state==='warning'?'rowWarning':'rowOk')}></i><strong>{row.plate}</strong><small>{row.vehicle}</small></td><td><strong>{labels[row.type] ?? row.customType ?? row.type}</strong>{row.optional&&<small>optional</small>}</td><td><strong>{dateFormatter.format(new Date(row.dueDate))}</strong></td><td><span className={'badge '+(row.state==='critical'?'badgeBad':row.state==='warning'?'badgeWarn':'badgeOk')}>{daysText(row.dueDate)}</span></td><td>{row.notes || <span className="muted">—</span>}</td></tr>)}
-          {!loading&&!filtered.length&&<tr><td colSpan={5} className="emptyCell">Keine Termine für diese Auswahl.</td></tr>}
+        <div className="tableWrap"><table className="moduleDataTable deadlinesTable"><thead><tr><th>Fahrzeug</th><th>Termin</th><th>Fällig am</th><th>Status</th><th>Notiz</th><th>Aktion</th></tr></thead><tbody>
+          {filtered.map(row=><tr key={row.id}><td className="plateCell"><i className={'rowState '+(row.state==='critical'?'rowCritical':row.state==='warning'?'rowWarning':'rowOk')}></i><strong>{row.plate}</strong><small>{row.vehicle}</small></td><td><strong>{labels[row.type] ?? row.customType ?? row.type}</strong>{row.optional&&<small>optional</small>}</td><td><strong>{dateFormatter.format(new Date(row.dueDate))}</strong></td><td><span className={'badge '+(row.state==='critical'?'badgeBad':row.state==='warning'?'badgeWarn':'badgeOk')}>{daysText(row.dueDate)}</span></td><td>{row.notes || <span className="muted">—</span>}</td><td><button className="completeBtn" disabled={completing===row.id} onClick={()=>completeDeadline(row)}><Check size={13}/>{completing===row.id?'...':'Erledigt'}</button></td></tr>)}
+          {!loading&&!filtered.length&&<tr><td colSpan={6} className="emptyCell">Keine Termine für diese Auswahl.</td></tr>}
         </tbody></table></div>
       </section>
 
