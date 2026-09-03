@@ -1,0 +1,6 @@
+import Link from 'next/link';
+import { FileClock, PlugZap, ShieldCheck, Users } from 'lucide-react';
+import { Sidebar } from '@/components/sidebar';
+import { Topbar } from '@/components/topbar';
+
+export default function SettingsPage(){const cards=[{title:'Benutzer & Rollen',text:'Konten anlegen, deaktivieren und Rollen vergeben.',href:'/settings/users',icon:Users},{title:'Audit Log',text:'Änderungen, Uploads, Archive und Systemaktionen nachvollziehen.',href:'/settings/audit',icon:FileClock},{title:'Integrationen',text:'Status von Samsara, S4, Chatwoot, n8n, Meta und Urlaubsportal.',href:'/integrationen',icon:PlugZap},{title:'Sicherheit',text:'Login ist aktiv; Secrets bleiben ausschließlich in der Server-Konfiguration.',href:'/settings/users',icon:ShieldCheck}];return <div className="appShell"><Sidebar/><main className="main"><Topbar title="Einstellungen" subtitle="Administration des Control Centers"/><div className="content"><div className="moduleCards settingsCards">{cards.map(card=>{const I=card.icon;return <Link href={card.href} className="moduleCard" key={card.title}><span className="moduleCardIcon"><I size={19}/></span><div><div className="moduleCardHead"><h3>{card.title}</h3><span>Aktiv</span></div><p>{card.text}</p></div></Link>})}</div></div></main></div>}
