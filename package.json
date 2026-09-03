@@ -10,9 +10,11 @@
     "db:push": "npm --workspace packages/db run push",
     "db:studio": "npm --workspace packages/db run studio",
     "import:kfz": "node scripts/import-kfz-xlsx.mjs",
-    "import:kfz:db": "node scripts/import-kfz-to-db.mjs"
+    "import:kfz:db": "node scripts/import-kfz-to-db.mjs",
+    "sync:mega-s4": "node scripts/sync-mega-s4.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.883.0",
     "xlsx": "0.18.5"
   }
 }
