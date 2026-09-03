@@ -20,6 +20,7 @@ function inferVehicleDescription(row) {
   if (notes.includes('actros')) return { manufacturer: 'Mercedes-Benz', model: 'Actros', displayName: 'Mercedes-Benz Actros', category: 'TRUCK' };
   if (notes.includes('sprinter')) return { manufacturer: 'Mercedes-Benz', model: 'Sprinter', displayName: 'Mercedes-Benz Sprinter', category: 'VAN' };
   if (notes.includes('transit')) return { manufacturer: 'Ford', model: 'Transit', displayName: 'Ford Transit', category: 'VAN' };
+  if (notes.includes('nissan cabstar')) return { manufacturer: 'Nissan', model: 'Cabstar', displayName: 'Nissan Cabstar', category: 'TRUCK' };
   if (notes.includes('niewiadow') || notes.includes('niewiadów')) return { manufacturer: 'Niewiadów', model: null, displayName: 'Anhänger Niewiadów', category: 'TRAILER' };
   if (notes.includes('anhänger') || notes.includes('anhaenger')) return { manufacturer: null, model: null, displayName: 'Anhänger', category: 'TRAILER' };
   if (/\bszm\b/i.test(row.documentsNotes ?? '')) return { manufacturer: null, model: null, displayName: 'Sattelzugmaschine', category: 'TRUCK' };
@@ -54,7 +55,11 @@ function vehicleData(row) {
     rateRaw: row.rateRaw ?? null,
     inventoryNumber: row.inventoryNumber ?? null,
     notes: row.notes ?? null,
-    sourceRaw: row.sourceRaw ?? null,
+    lifecycle: row.lifecycle ?? 'ACTIVE',
+    lifecycleNote: row.lifecycleNote ?? null,
+    soldAt: asDate(row.soldAt),
+    soldTo: row.soldTo ?? null,
+    sourceRaw: row.sourceRaw ?? undefined,
   };
 }
 
@@ -127,7 +132,7 @@ async function main() {
         plateText: period.plateText,
         startsAt,
         endsAt: asDate(period.endsAt),
-        sourceRaw: period.sourceRaw ?? null,
+        sourceRaw: period.sourceRaw ?? undefined,
       },
     });
     hookImported += 1;
@@ -135,7 +140,14 @@ async function main() {
 
   console.log(JSON.stringify({
     sourceFile: payload.sourceFile ?? input,
-    vehicles: { created, updated, skipped },
+    vehicles: {
+      created,
+      updated,
+      skipped,
+      active: rows.filter(row => row.lifecycle === 'ACTIVE').length,
+      sold: rows.filter(row => row.lifecycle === 'SOLD').length,
+      archived: rows.filter(row => row.lifecycle === 'ARCHIVED').length,
+    },
     hookLoadPeriods: { imported: hookImported, unmatched: hookUnmatched },
   }, null, 2));
 }
