@@ -8,6 +8,7 @@ function hasRole(role:string,allowed:Role[]){return allowed.includes(role as Rol
 
 function requiredPageRoles(pathname:string):Role[]|null{
   if(pathname.startsWith('/settings')) return ['ADMIN'];
+  if(pathname.startsWith('/fahrer/verstoesse')) return ['ADMIN','FUHRPARK','PERSONAL','DISPOSITION'];
   if(pathname.startsWith('/fahrer')) return ['ADMIN','PERSONAL','DISPOSITION'];
   if(pathname.startsWith('/kommunikation')) return ['ADMIN','DISPOSITION'];
   if(pathname.startsWith('/fuhrpark/werkstatt')) return ['ADMIN','FUHRPARK'];
@@ -18,6 +19,7 @@ function requiredPageRoles(pathname:string):Role[]|null{
 function requiredApiRoles(pathname:string,method:string):Role[]|null{
   const write=WRITE_METHODS.has(method);
   if(pathname.startsWith('/api/users')||pathname.startsWith('/api/settings')||pathname.startsWith('/api/audit')) return ['ADMIN'];
+  if(pathname.startsWith('/api/ddd')) return ['ADMIN','FUHRPARK','PERSONAL','DISPOSITION'];
   if(pathname.startsWith('/api/drivers')) return write?['ADMIN','PERSONAL']:['ADMIN','PERSONAL','DISPOSITION'];
   if(pathname.startsWith('/api/workshop')) return ['ADMIN','FUHRPARK'];
   if(pathname.startsWith('/api/message-templates')||pathname.startsWith('/api/automations')||pathname.startsWith('/api/integrations/chatwoot')||pathname.startsWith('/api/integrations/meta')) return ['ADMIN','DISPOSITION'];
