@@ -1,0 +1,35 @@
+name: Docker CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - Dockerfile
+      - docker-compose.yml
+      - .dockerignore
+      - package.json
+      - apps/web/package.json
+      - packages/db/package.json
+      - .github/workflows/docker.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - Dockerfile
+      - docker-compose.yml
+      - .dockerignore
+      - package.json
+      - apps/web/package.json
+      - packages/db/package.json
+      - .github/workflows/docker.yml
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build production image
+        run: docker build --build-arg DATABASE_URL=postgresql://lts:lts@localhost:5432/lts_control -t lts-control-center:ci .
