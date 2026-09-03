@@ -3,7 +3,10 @@ import { useMemo, useState } from 'react';
 import { Check, X, MoreHorizontal, SlidersHorizontal, Columns3, Plus } from 'lucide-react';
 import { Vehicle } from '@/lib/demo';
 
-function YesNo({yes}:{yes:boolean}) {return yes?<span className="iconOk"><Check size={16}/></span>:<span className="iconBad"><X size={16}/></span>}
+function YesNo({yes}:{yes:boolean|null}) {
+ if (yes===null) return <span className="muted">—</span>;
+ return yes?<span className="iconOk"><Check size={16}/></span>:<span className="iconBad"><X size={16}/></span>;
+}
 function TuvBadge({v}:{v:Vehicle}){return <span className={'badge '+(v.tuvState==='ok'?'badgeOk':v.tuvState==='warning'?'badgeWarn':v.tuvState==='critical'?'badgeBad':'')}>{v.tuv}</span>}
 
 export function FleetTable({vehicles,onSelect}:{vehicles:Vehicle[];onSelect:(v:Vehicle)=>void}){
