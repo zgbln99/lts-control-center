@@ -15,7 +15,8 @@
     "import:legacy-vehicles": "node scripts/import-legacy-vehicles-sql.mjs",
     "bootstrap:admin": "node scripts/bootstrap-admin.mjs",
     "sync:mega-s4": "node scripts/sync-mega-s4.mjs",
-    "sync:samsara": "node scripts/sync-samsara.mjs"
+    "sync:samsara": "node scripts/sync-samsara.mjs",
+    "worker:samsara": "node scripts/run-samsara-worker.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1125.0",
