@@ -21,7 +21,7 @@ function requiredApiRoles(pathname:string,method:string):Role[]|null{
   const write=WRITE_METHODS.has(method);
   if(pathname.startsWith('/api/users')||pathname.startsWith('/api/settings')||pathname.startsWith('/api/audit')) return ['ADMIN'];
   if(pathname.startsWith('/api/ddd')) return ['ADMIN','FUHRPARK','PERSONAL','DISPOSITION'];
-  if(pathname.startsWith('/api/driver-documents')) return ['ADMIN','PERSONAL','DISPOSITION'];
+  if(pathname.startsWith('/api/driver-documents')) return write?['ADMIN','PERSONAL']:['ADMIN','PERSONAL','DISPOSITION'];
   if(pathname.startsWith('/api/drivers')) return write?['ADMIN','PERSONAL']:['ADMIN','PERSONAL','DISPOSITION'];
   if(pathname.startsWith('/api/workshop')) return ['ADMIN','FUHRPARK'];
   if(pathname.startsWith('/api/message-templates')||pathname.startsWith('/api/automations')||pathname.startsWith('/api/integrations/chatwoot')||pathname.startsWith('/api/integrations/meta')) return ['ADMIN','DISPOSITION'];
@@ -35,7 +35,7 @@ function requiredApiRoles(pathname:string,method:string):Role[]|null{
 export async function middleware(request:NextRequest){
   const {pathname}=request.nextUrl;
   if(pathname==='/api/ddd/batches'&&request.method==='POST'&&hasDddMachineToken(request)){const headers=new Headers(request.headers);headers.set('x-lts-machine','ddd-analyzer');return NextResponse.next({request:{headers}})}
-  if(PUBLIC_PATHS.includes(pathname)||pathname.startsWith('/api/public/documents/')||pathname.startsWith('/_next/')||pathname==='/favicon.ico') return NextResponse.next();
+  if(PUBLIC_PATHS.includes(pathname)||pathname.startsWith('/api/public/documents/')||pathname.startsWith('/api/public/driver-documents/')||pathname.startsWith('/_next/')||pathname==='/favicon.ico') return NextResponse.next();
   const token=request.cookies.get(SESSION_COOKIE)?.value;
   if(!token){if(pathname.startsWith('/api/'))return NextResponse.json({error:'Unauthorized'},{status:401});const login=new URL('/login',request.url);login.searchParams.set('next',`${pathname}${request.nextUrl.search}`);return NextResponse.redirect(login)}
   try{
