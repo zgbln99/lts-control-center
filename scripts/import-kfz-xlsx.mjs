@@ -26,8 +26,18 @@ function dateToIso(value) {
   }
   const text = cleanString(value);
   if (!text) return null;
-  const parsed = new Date(text);
-  return Number.isFinite(parsed.getTime()) ? parsed.toISOString().slice(0,10) : null;
+  const iso = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) {
+    const date = new Date(Date.UTC(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3])));
+    return date.getUTCFullYear() === Number(iso[1]) && date.getUTCMonth() === Number(iso[2]) - 1 && date.getUTCDate() === Number(iso[3]) ? text : null;
+  }
+  const german = text.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/);
+  if (german) {
+    const year = german[3].length === 2 ? 2000 + Number(german[3]) : Number(german[3]);
+    const date = new Date(Date.UTC(year, Number(german[2]) - 1, Number(german[1])));
+    if (date.getUTCFullYear() === year && date.getUTCMonth() === Number(german[2]) - 1 && date.getUTCDate() === Number(german[1])) return date.toISOString().slice(0,10);
+  }
+  return null;
 }
 
 function germanTextDateToIso(value) {
