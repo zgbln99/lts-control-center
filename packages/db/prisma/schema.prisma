@@ -255,6 +255,12 @@ model Driver {
   personnelNumber     String?      @unique
   firstName           String
   lastName            String
+  samsaraId           String?      @unique
+  samsaraName         String?
+  samsaraSyncedAt     DateTime?
+  profileImageUrl     String?
+  licenseState        String?
+  sourceRaw           Json?
   phone               String?
   email               String?
   language            String       @default("de")
