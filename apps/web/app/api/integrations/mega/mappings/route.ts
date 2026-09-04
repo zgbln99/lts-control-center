@@ -20,8 +20,14 @@ export async function POST(request:NextRequest){
   if(folder.includes('/')||folder.includes('\\'))return NextResponse.json({error:'Ungültiger Ordnername.'},{status:400});
   const vehicle=await prisma.vehicle.findUnique({where:{id:vehicleId},select:{id:true,plate:true}});if(!vehicle)return NextResponse.json({error:'Fahrzeug nicht gefunden.'},{status:404});
   const storagePrefix=prefixFor(folder);
-  const mapping=await prisma.storageFolderMapping.upsert({where:{originalFolder:folder},create:{vehicleId:vehicle.id,originalFolder:folder,storagePrefix,normalizedPlate,confidence:1,confirmed:true},update:{vehicleId:vehicle.id,storagePrefix,normalizedPlate,confidence:1,confirmed:true}});
-  await prisma.vehicle.update({where:{id:vehicle.id},data:{storagePrefix}});
+  const existing=await prisma.storageFolderMapping.findUnique({where:{originalFolder:folder},select:{vehicleId:true}});
+  const operations:any[]=[
+    prisma.storageFolderMapping.upsert({where:{originalFolder:folder},create:{vehicleId:vehicle.id,originalFolder:folder,storagePrefix,normalizedPlate,confidence:1,confirmed:true},update:{vehicleId:vehicle.id,storagePrefix,normalizedPlate,confidence:1,confirmed:true}}),
+    prisma.vehicle.update({where:{id:vehicle.id},data:{storagePrefix}}),
+    prisma.vehicleDocument.updateMany({where:{storageKey:{startsWith:storagePrefix}},data:{vehicleId:vehicle.id}}),
+  ];
+  if(existing?.vehicleId&&existing.vehicleId!==vehicle.id)operations.push(prisma.vehicle.updateMany({where:{id:existing.vehicleId,storagePrefix},data:{storagePrefix:null}}));
+  const [mapping]=await prisma.$transaction(operations);
   const state=await prisma.integrationState.findUnique({where:{key:'MEGA_S4'}});const publicConfig=(state?.configPublic&&typeof state.configPublic==='object'?state.configPublic:{}) as any;const unmatched=Array.isArray(publicConfig?.unmatched)?publicConfig.unmatched.filter((row:any)=>row?.folder!==folder):[];
   await prisma.integrationState.upsert({where:{key:'MEGA_S4'},create:{key:'MEGA_S4',enabled:true,configPublic:{...publicConfig,unmatched}},update:{configPublic:{...publicConfig,unmatched}}});
   await audit(request,'UPDATE','StorageFolderMapping',mapping.id,{folder,vehicleId:vehicle.id,plate:vehicle.plate});
