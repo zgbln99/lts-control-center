@@ -116,7 +116,7 @@ export async function POST(request:NextRequest){
     }});
 
     const result=await prisma.tachographViolation.createMany({
-      data:prepared.map(row=>({...row,batchId:batch.id})) as any[],
+      data:prepared.map((row:any)=>({...row,batchId:batch.id})) as any[],
       skipDuplicates:true,
     });
 
