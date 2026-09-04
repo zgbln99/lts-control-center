@@ -19,35 +19,20 @@ jobs:
           node-version: 22
       - name: Generate package lock
         run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-      - name: Switch builds to npm ci
+      - name: Switch Docker build to npm ci
         run: |
           python3 - <<'PY'
           from pathlib import Path
-
-          ci = Path('.github/workflows/ci.yml')
-          text = ci.read_text()
-          text = text.replace('run: npm install', 'run: npm ci')
-          block = """      - name: Export generated lockfile
-                uses: actions/upload-artifact@v4
-                with:
-                  name: npm-lockfile
-                  path: package-lock.json
-                  retention-days: 1
-          """
-          text = text.replace(block, '')
-          ci.write_text(text)
-
           docker = Path('Dockerfile')
           text = docker.read_text()
           text = text.replace('COPY package.json ./', 'COPY package.json package-lock.json ./')
           text = text.replace('RUN npm install', 'RUN npm ci')
           docker.write_text(text)
           PY
-      - name: Commit reproducible dependency install
+      - name: Commit lockfile
         run: |
-          git rm .github/workflows/bootstrap-lock.yml
-          git add package-lock.json .github/workflows/ci.yml Dockerfile
+          git add package-lock.json Dockerfile
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "build: lock npm dependencies and use npm ci"
+          git commit -m "build: lock npm dependencies for Docker"
           git push
