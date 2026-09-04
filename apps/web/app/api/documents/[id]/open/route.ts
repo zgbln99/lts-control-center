@@ -6,7 +6,16 @@ import { getS4Bucket, getS4Client } from '@/lib/s4';
 export const runtime='nodejs';
 
 function dispositionFilename(filename:string){
-  return encodeURIComponent(filename).replace(/['()]/g,escape).replace(/\*/g,'%2A');
+  return encodeURIComponent(filename).replace(/['()*]/g,char=>'%'+char.charCodeAt(0).toString(16).toUpperCase());
+}
+function effectiveMime(filename:string,mimeType:string|null|undefined){
+  if(mimeType&&mimeType!=='application/octet-stream') return mimeType;
+  const lower=filename.toLowerCase();
+  if(lower.endsWith('.pdf')) return 'application/pdf';
+  if(lower.endsWith('.jpg')||lower.endsWith('.jpeg')) return 'image/jpeg';
+  if(lower.endsWith('.png')) return 'image/png';
+  if(lower.endsWith('.webp')) return 'image/webp';
+  return mimeType||'application/octet-stream';
 }
 
 export async function GET(request:NextRequest,{params}:{params:Promise<{id:string}>}){
@@ -29,7 +38,7 @@ export async function GET(request:NextRequest,{params}:{params:Promise<{id:strin
 
   const bytes=await object.Body.transformToByteArray();
   const headers=new Headers();
-  headers.set('Content-Type',document.mimeType||object.ContentType||'application/octet-stream');
+  headers.set('Content-Type',effectiveMime(document.filename,document.mimeType||object.ContentType));
   headers.set('Content-Disposition',`${download?'attachment':'inline'}; filename*=UTF-8''${dispositionFilename(document.filename)}`);
   headers.set('Accept-Ranges','bytes');
   headers.set('Cache-Control','private, no-store');
