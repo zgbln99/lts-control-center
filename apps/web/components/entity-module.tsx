@@ -1,13 +1,14 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { Archive, Edit3, Plus, RefreshCw, Search, X } from 'lucide-react';
+import Link from 'next/link';
+import { Archive, Edit3, Eye, Plus, RefreshCw, Search, X } from 'lucide-react';
 
 type Option={value:string;label:string};
 type Field={key:string;label:string;type?:'text'|'date'|'number'|'textarea'|'select'|'email'|'tel';required?:boolean;options?:Option[];wide?:boolean;placeholder?:string};
 type Column={key:string;label:string;format?:'text'|'date'|'money'|'boolean'|'status'|'array'};
 type Role='ADMIN'|'FUHRPARK'|'PERSONAL'|'DISPOSITION'|'READ_ONLY';
-type Props={title:string;subtitle:string;endpoint:string;itemsKey:string;columns:Column[];fields?:Field[];createLabel?:string;emptyText?:string;allowDelete?:boolean;deleteLabel?:string};
+type Props={title:string;subtitle:string;endpoint:string;itemsKey:string;columns:Column[];fields?:Field[];createLabel?:string;emptyText?:string;allowDelete?:boolean;deleteLabel?:string;detailHrefBase?:string;detailLabel?:string};
 function mayWrite(endpoint:string,role:Role|null){if(!role)return false;if(endpoint.startsWith('/api/users'))return role==='ADMIN';if(endpoint.startsWith('/api/drivers'))return role==='ADMIN'||role==='PERSONAL';if(endpoint.startsWith('/api/workshop'))return role==='ADMIN'||role==='FUHRPARK';if(endpoint.startsWith('/api/message-templates')||endpoint.startsWith('/api/automations'))return role==='ADMIN'||role==='DISPOSITION';if(endpoint.startsWith('/api/document-templates'))return role==='ADMIN'||role==='PERSONAL'||role==='FUHRPARK';if(endpoint.startsWith('/api/costs'))return role==='ADMIN'||role==='FUHRPARK';return false;}
 
 function valueAt(row:any,path:string){return path.split('.').reduce((value,key)=>value?.[key],row)}
@@ -29,7 +30,7 @@ function dateClass(value:any){
   return days<0?'moduleExpired':days<=30?'moduleSoon':'';
 }
 
-export function EntityModule({title,subtitle,endpoint,itemsKey,columns,fields=[],createLabel='Neu anlegen',emptyText='Noch keine Einträge.',allowDelete=true,deleteLabel='Archivieren'}:Props){
+export function EntityModule({title,subtitle,endpoint,itemsKey,columns,fields=[],createLabel='Neu anlegen',emptyText='Noch keine Einträge.',allowDelete=true,deleteLabel='Archivieren',detailHrefBase,detailLabel='Öffnen'}:Props){
   const [items,setItems]=useState<any[]>([]);
   const [loading,setLoading]=useState(true);
   const [query,setQuery]=useState('');
@@ -88,9 +89,9 @@ export function EntityModule({title,subtitle,endpoint,itemsKey,columns,fields=[]
     <div className="tableCard moduleEntityCard">
       <div className="moduleToolbar"><div className="moduleSearch"><Search size={14}/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder="Suchen ..."/></div><span className="moduleCounter">{filtered.length} Einträge</span></div>
       {message&&<div className="moduleInlineMessage">{message}</div>}
-      <div className="tableWrap"><table className="moduleDataTable"><thead><tr>{columns.map(column=><th key={column.key}>{column.label}</th>)}{fields.length>0&&<th>Aktionen</th>}</tr></thead><tbody>
-        {!loading&&filtered.map(row=><tr key={row.id}>{columns.map(column=>{const value=valueAt(row,column.key);return <td key={column.key} className={column.format==='date'?dateClass(value):''}>{column.format==='status'?<span className={`entityStatus status-${String(value).toLowerCase()}`}>{displayValue(value,'text')}</span>:displayValue(value,column.format)}</td>})}{fields.length>0&&<td>{canWrite?<div className="entityActions"><button onClick={()=>startEdit(row)} title="Bearbeiten"><Edit3 size={14}/></button>{allowDelete&&<button onClick={()=>void remove(row)} title={deleteLabel}><Archive size={14}/></button>}</div>:<span className="muted">—</span>}</td>}</tr>)}
-        {loading&&<tr><td colSpan={columns.length+1} className="emptyCell">Daten werden geladen ...</td></tr>}
+      <div className="tableWrap"><table className="moduleDataTable"><thead><tr>{columns.map(column=><th key={column.key}>{column.label}</th>)}{(fields.length>0||detailHrefBase)&&<th>Aktionen</th>}</tr></thead><tbody>
+        {!loading&&filtered.map(row=><tr key={row.id}>{columns.map(column=>{const value=valueAt(row,column.key);return <td key={column.key} className={column.format==='date'?dateClass(value):''}>{column.format==='status'?<span className={`entityStatus status-${String(value).toLowerCase()}`}>{displayValue(value,'text')}</span>:displayValue(value,column.format)}</td>})}{(fields.length>0||detailHrefBase)&&<td><div className="entityActions">{detailHrefBase&&<Link className="entityActionLink" href={`${detailHrefBase}/${row.id}`} title={detailLabel}><Eye size={14}/></Link>}{canWrite&&fields.length>0&&<button onClick={()=>startEdit(row)} title="Bearbeiten"><Edit3 size={14}/></button>}{canWrite&&allowDelete&&fields.length>0&&<button onClick={()=>void remove(row)} title={deleteLabel}><Archive size={14}/></button>}</div></td>}</tr>)}
+        {loading&&<tr><td colSpan={columns.length+((fields.length>0||detailHrefBase)?1:0)} className="emptyCell">Daten werden geladen ...</td></tr>}
         {!loading&&!filtered.length&&<tr><td colSpan={columns.length+1} className="emptyCell">{emptyText}</td></tr>}
       </tbody></table></div>
     </div>
