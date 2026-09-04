@@ -24,6 +24,8 @@ jobs:
         run: npm ci
       - name: Validate shell scripts
         run: sh -n scripts/*.sh
+      - name: Validate Node scripts
+        run: for file in scripts/*.mjs; do node --check "$file"; done
       - name: Security audit (production dependencies)
         run: npm audit --omit=dev --audit-level=high
       - name: Generate Prisma client
