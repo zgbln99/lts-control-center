@@ -17,14 +17,14 @@ export async function GET(request:NextRequest) {
   if(categoryParam&&!parseCategory(categoryParam))return NextResponse.json({error:'Invalid vehicle category'},{status:400});
   const categoryWhere=typ==='anhaenger'?{in:['TRAILER','SEMITRAILER'] as const}:categoryParam?parseCategory(categoryParam)??undefined:undefined;
   const vehicles=await prisma.vehicle.findMany({where:{lifecycle:'ACTIVE',...(categoryWhere?{category:categoryWhere as any}:{})},orderBy:[{sourcePosition:'asc'},{plate:'asc'}],include:{telemetry:true,deadlines:{where:{completedAt:null},orderBy:{dueDate:'asc'}},_count:{select:{documents:true}}}});
-  const rows=vehicles.map(vehicle=>{const tuv=vehicle.deadlines.find(item=>item.type==='TUV')??null;const sp=vehicle.deadlines.find(item=>item.type==='SP')??null;const tacho=vehicle.deadlines.find(item=>item.type==='TACHO')??null;return {
+  const rows=vehicles.map(vehicle=>{const tuv=vehicle.deadlines.find(item=>item.type==='TUV')??null;const sp=vehicle.deadlines.find(item=>item.type==='SP')??null;const tacho=vehicle.deadlines.find(item=>item.type==='TACHO')??null;const uvv=vehicle.deadlines.find(item=>item.type==='UVV')??null;return {
     id:vehicle.id,plate:vehicle.plate,plateOriginal:vehicle.plateOriginal,plateAliases:vehicle.plateAliases,category:vehicle.category,
     vehicle:vehicle.displayName||[vehicle.manufacturer,vehicle.model].filter(Boolean).join(' ')||'—',firstRegistration:formatDate(vehicle.firstRegistration),vin:vehicle.vin,
-    insuranceNumber:vehicle.insuranceNumber,taxNumber:vehicle.taxNumber,grossVehicleWeightKg:vehicle.grossVehicleWeightKg,inventoryNumber:vehicle.inventoryNumber,
+    insuranceNumber:vehicle.insuranceNumber,taxNumber:vehicle.taxNumber,grossVehicleWeightKg:vehicle.grossVehicleWeightKg,powerKw:vehicle.powerKw?.toString()??null,powerHp:vehicle.powerHp?.toString()??null,inventoryNumber:vehicle.inventoryNumber,
     financingEnd:formatDate(vehicle.financingEnd),financingEndRaw:vehicle.financingEndRaw,monthlyRate:vehicle.monthlyRate?.toString()??vehicle.rateRaw,documentsNotes:vehicle.documentsNotes,notes:vehicle.notes,
     cameraInstalled:vehicle.cameraInstalled,wrapped:vehicle.wrapped,wrapType:vehicle.wrapType,
     samsara:{connected:Boolean(vehicle.samsaraId),id:vehicle.samsaraId,online:vehicle.telemetry?.online??null,location:vehicle.telemetry?.geofenceName||vehicle.telemetry?.locationLabel||vehicle.telemetry?.address||null,odometerKm:vehicle.telemetry?.odometerKm??null,latitude:vehicle.telemetry?.latitude??null,longitude:vehicle.telemetry?.longitude??null,lastSeenAt:vehicle.telemetry?.lastSeenAt?.toISOString()??null},
-    deadlines:{tuv:tuv?{dueDate:tuv.dueDate.toISOString(),state:deadlineState(tuv.dueDate)}:null,sp:sp?{dueDate:sp.dueDate.toISOString(),state:deadlineState(sp.dueDate)}:null,tacho:tacho?{dueDate:tacho.dueDate.toISOString(),state:deadlineState(tacho.dueDate)}:null},documentCount:vehicle._count.documents,
+    deadlines:{tuv:tuv?{dueDate:tuv.dueDate.toISOString(),state:deadlineState(tuv.dueDate)}:null,sp:sp?{dueDate:sp.dueDate.toISOString(),state:deadlineState(sp.dueDate)}:null,tacho:tacho?{dueDate:tacho.dueDate.toISOString(),state:deadlineState(tacho.dueDate)}:null,uvv:uvv?{dueDate:uvv.dueDate.toISOString(),state:deadlineState(uvv.dueDate)}:null},documentCount:vehicle._count.documents,
   }});
   return NextResponse.json({generatedAt:new Date().toISOString(),total:rows.length,vehicles:rows});
 }
