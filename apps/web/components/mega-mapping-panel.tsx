@@ -14,6 +14,7 @@ export function MegaMappingPanel(){
   const [savingFolder,setSavingFolder]=useState<string|null>(null);
   const [selected,setSelected]=useState<Record<string,string>>({});
   const [message,setMessage]=useState('');
+  const [canEdit,setCanEdit]=useState(false);
 
   async function load(){
     setLoading(true);setMessage('');
@@ -26,7 +27,7 @@ export function MegaMappingPanel(){
     finally{setLoading(false)}
   }
 
-  useEffect(()=>{void load()},[]);
+  useEffect(()=>{void load();fetch('/api/auth/me').then(response=>response.ok?response.json():null).then(payload=>setCanEdit(['ADMIN','FUHRPARK'].includes(payload?.user?.role))).catch(()=>setCanEdit(false))},[]);
 
   const vehicleByPlate=useMemo(()=>new Map(data.vehicles.map(vehicle=>[vehicle.plate.toUpperCase(),vehicle.id])),[data.vehicles]);
 
@@ -78,11 +79,11 @@ export function MegaMappingPanel(){
       {data.unmatched.map(row=><div className="megaUnmatchedRow" key={row.folder}>
         <span className="megaFolderIcon"><FolderSearch size={17}/></span>
         <div className="megaFolderName"><strong>{row.folder}</strong><span>{row.files} {row.files===1?'Datei':'Dateien'} · erkannt: {row.normalizedPlate||'kein Kennzeichen'}</span></div>
-        <select value={selected[row.folder]??''} onChange={event=>setSelected(current=>({...current,[row.folder]:event.target.value}))}>
+        {canEdit?<><select value={selected[row.folder]??''} onChange={event=>setSelected(current=>({...current,[row.folder]:event.target.value}))}>
           <option value="">Fahrzeug auswählen …</option>
           {data.vehicles.map(vehicle=><option value={vehicle.id} key={vehicle.id}>{vehicle.plate}{vehicle.displayName?' · '+vehicle.displayName:''}</option>)}
         </select>
-        <button className="greenBtn" onClick={()=>void assign(row)} disabled={savingFolder===row.folder||!selected[row.folder]}><Link2 size={14}/>{savingFolder===row.folder?'Speichern ...':'Zuordnen'}</button>
+        <button className="greenBtn" onClick={()=>void assign(row)} disabled={savingFolder===row.folder||!selected[row.folder]}><Link2 size={14}/>{savingFolder===row.folder?'Speichern ...':'Zuordnen'}</button></>:<span className="megaReadOnly">Nur Fuhrpark / Admin kann Ordner zuordnen.</span>}
       </div>)}
     </div>:<div className="megaAllMatched"><CheckCircle2 size={19}/><div><strong>Keine offenen Ordner</strong><span>{loading?'Zuordnungen werden geprüft …':'Alle zuletzt erkannten Fahrzeugordner sind zugeordnet.'}</span></div></div>}
 
