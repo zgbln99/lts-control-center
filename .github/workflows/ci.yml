@@ -21,13 +21,7 @@ jobs:
         with:
           node-version: 22
       - name: Install dependencies
-        run: npm install
-      - name: Export generated lockfile
-        uses: actions/upload-artifact@v4
-        with:
-          name: npm-lockfile
-          path: package-lock.json
-          retention-days: 1
+        run: npm ci
       - name: Security audit (production dependencies)
         run: npm audit --omit=dev --audit-level=high
       - name: Generate Prisma client

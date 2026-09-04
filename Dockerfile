@@ -3,6 +3,7 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
 FROM base AS deps
+# package-lock.json is committed; npm ci keeps dependency resolution reproducible.
 COPY package.json package-lock.json ./
 COPY apps/web/package.json ./apps/web/package.json
 COPY packages/db/package.json ./packages/db/package.json
