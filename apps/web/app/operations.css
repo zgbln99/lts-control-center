@@ -149,3 +149,26 @@
 .documentShareLine button{height:34px;border:1px solid #cfe4d8;border-radius:7px;background:#fff;color:#167d49;padding:0 9px;display:flex;align-items:center;justify-content:center;gap:5px;font-size:8px;font-weight:700;cursor:pointer}
 .documentShareLine .shareClose{width:34px;padding:0;color:#758191;border-color:#dce3e8}
 @media(max-width:760px){.documentActions .documentActionText span{display:none}.documentActions .documentActionText{width:30px!important;padding:0!important}.documentShareLine{grid-template-columns:1fr auto}.documentShareLine .shareClose{grid-column:2}.documentShareLine input{grid-column:1/-1}}
+
+
+/* Driver record -------------------------------------------------------------- */
+.entityActions .entityActionLink{width:32px;height:32px;border:1px solid #dfe5ec;border-radius:7px;background:#fff;color:#5f6d7e;display:grid;place-items:center;text-decoration:none}
+.entityActions .entityActionLink:hover{background:#f4faf6;border-color:#cde6d8;color:#15854d}
+.driverProfileContent{max-width:1800px}
+.driverProfileTop{display:flex;gap:8px;margin-bottom:12px}
+.driverHeroCard{display:grid;grid-template-columns:68px minmax(0,1fr) auto;gap:16px;align-items:center;padding:18px 20px;margin-bottom:14px;border:1px solid #e0e6ec;border-radius:13px;background:#fff;box-shadow:0 4px 18px rgba(20,37,58,.04)}
+.driverAvatarLarge{width:62px;height:62px;border-radius:16px;background:#eef8f3;color:#188e52;display:grid;place-items:center}
+.driverHeroMain h2{margin:7px 0 3px;font-size:24px;color:#213247}.driverHeroMain p{margin:0;font-size:10px;color:#7a8797}
+.driverQuickContact{display:flex;flex-direction:column;align-items:flex-end;gap:7px}.driverQuickContact a{display:flex;align-items:center;gap:6px;color:#55677a;text-decoration:none;font-size:9px}.driverQuickContact a:hover{color:#16884f}
+.driverProfileGrid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(360px,.7fr);gap:14px;margin-bottom:14px}
+.driverDataCard,.driverDeadlineCard,.driverDocumentsCard{padding:17px}.driverDataCard .modulePageHead,.driverDeadlineCard .modulePageHead,.driverDocumentsCard .modulePageHead{margin-bottom:14px}
+.driverInfoGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:#e9edf1;border:1px solid #e0e5ea;border-radius:10px;overflow:hidden}
+.driverInfoGrid>div{background:#fff;padding:11px 12px;min-width:0}.driverInfoGrid>div.wide{grid-column:1/-1}.driverInfoGrid span,.driverInfoGrid strong{display:block}.driverInfoGrid span{font-size:8px;color:#7b8796;margin-bottom:4px}.driverInfoGrid strong{font-size:10px;color:#2c3b4d;word-break:break-word}
+.driverDeadlineGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.driverDeadlineGrid .deadlineCard{min-height:92px}
+.driverProfileUpload{display:grid;grid-template-columns:170px 150px minmax(220px,1fr) auto;gap:8px;margin-bottom:12px}.driverProfileUpload select,.driverProfileUpload input{min-width:0}
+.driverProfileDocs{display:flex;flex-direction:column;gap:7px}.driverProfileDoc{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:9px;align-items:center;min-height:56px;padding:8px 9px;border:1px solid #e0e5eb;border-radius:9px;background:#fff}.driverProfileDoc>div:nth-child(2){min-width:0}.driverProfileDoc strong,.driverProfileDoc small{display:block}.driverProfileDoc strong{font-size:10px;color:#2e3d4e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.driverProfileDoc small{font-size:8px;color:#7c8999;margin-top:3px}
+.driverProfileLoading{padding:24px;font-size:11px;color:#6f7d8e}
+.driverDocumentShare{margin:10px 12px}
+.driverDocumentsTable{min-width:1250px!important}
+@media(max-width:1150px){.driverProfileGrid{grid-template-columns:1fr}.driverProfileUpload{grid-template-columns:1fr 1fr}.driverProfileUpload input[type=file]{grid-column:1/-1}.driverProfileUpload button{grid-column:1/-1}}
+@media(max-width:760px){.driverHeroCard{grid-template-columns:54px 1fr}.driverAvatarLarge{width:50px;height:50px}.driverQuickContact{grid-column:1/-1;align-items:flex-start}.driverInfoGrid,.driverDeadlineGrid{grid-template-columns:1fr}.driverInfoGrid>div.wide{grid-column:auto}.driverProfileUpload{grid-template-columns:1fr}.driverProfileUpload input[type=file],.driverProfileUpload button{grid-column:auto}.driverProfileDoc{grid-template-columns:30px minmax(0,1fr)}.driverProfileDoc .documentActions{grid-column:1/-1;justify-content:flex-start}}
