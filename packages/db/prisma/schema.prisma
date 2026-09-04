@@ -457,6 +457,7 @@ model TachographViolation {
   vehicleId       String?
   plate           String?
   sourceId        String?
+  fingerprint     String?  @unique
   code            String?
   type            String
   legalReference  String?
