@@ -180,3 +180,14 @@
 .driverSourceCard strong{margin:4px 0;font-size:14px;color:#17884f}
 .driverSourceCard small{font-size:9px;color:#667789}
 .driverSourceNote{margin:12px 0 0;font-size:9px;line-height:1.55;color:#728091}
+
+
+/* Driver DDD violations ------------------------------------------------------ */
+.driverViolationsCard{padding:17px;margin-top:14px}
+.driverViolationKpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-bottom:12px}
+.driverViolationKpis>div{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;padding:11px 12px;border:1px solid #e0e6eb;border-radius:9px;background:#fff;color:#69798a}
+.driverViolationKpis span{font-size:9px}.driverViolationKpis strong{font-size:16px;color:#26374a}
+.driverViolationList{display:flex;flex-direction:column;gap:6px}
+.driverViolationRow{display:grid;grid-template-columns:minmax(180px,1.4fr) 150px 95px 90px 90px;align-items:center;gap:10px;padding:9px 10px;border:1px solid #e2e7ec;border-radius:8px;background:#fff}
+.driverViolationRow>div{min-width:0}.driverViolationRow strong,.driverViolationRow small{display:block}.driverViolationRow strong{font-size:9px;color:#2a3a4c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.driverViolationRow small{margin-top:2px;font-size:8px;color:#7e8a98;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.driverViolationRow>span:not(.entityStatus){font-size:8px;color:#657587}
+@media(max-width:900px){.driverViolationRow{grid-template-columns:1fr 1fr}.driverViolationRow>div{grid-column:1/-1}.driverViolationKpis{grid-template-columns:1fr}}
