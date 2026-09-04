@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-lts_control}
       POSTGRES_USER: ${POSTGRES_USER:-lts}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -15,6 +15,9 @@ services:
       retries: 10
 
   web:
+    init: true
+    security_opt:
+      - no-new-privileges:true
     build:
       context: .
       dockerfile: Dockerfile
@@ -22,7 +25,7 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql://lts:change-me@postgres:5432/lts_control}
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
       NODE_ENV: production
     ports:
       - "${APP_PORT:-3000}:3000"
