@@ -10,12 +10,15 @@ function deadlineClass(state: DeadlineState | undefined) {if (state === 'critica
 function deadlineText(state: DeadlineState | undefined) {if (state === 'critical') return 'überfällig';if (state === 'warning') return 'bald fällig';if (state === 'none') return 'kein Termin';return 'gültig'}
 function EquipmentState({value,positive,negative}:{value:boolean|null;positive:string;negative:string}) {if (value === null) return <strong className="muted">Noch nicht erfasst</strong>;return value?<strong className="greenText"><Check size={15}/> {positive}</strong>:<strong className="redText"><X size={15}/> {negative}</strong>}
 
-export function VehicleDetail({vehicle,onChanged}:{vehicle:Vehicle;onChanged?:()=>void|Promise<void>}){
+export function VehicleDetail({vehicle,onClose,onChanged}:{vehicle:Vehicle;onClose:()=>void;onChanged?:()=>void|Promise<void>}){
  const [drawerOpen,setDrawerOpen]=useState(false); const [canWrite,setCanWrite]=useState(false);
  useEffect(()=>{fetch('/api/auth/me').then(r=>r.ok?r.json():null).then(p=>setCanWrite(['ADMIN','FUHRPARK'].includes(p?.user?.role))).catch(()=>setCanWrite(false))},[]);
+ useEffect(()=>{const previous=document.body.style.overflow;document.body.style.overflow='hidden';const key=(event:KeyboardEvent)=>{if(event.key==='Escape')onClose()};window.addEventListener('keydown',key);return()=>{document.body.style.overflow=previous;window.removeEventListener('keydown',key)}},[onClose]);
  const docs=(vehicle.documentsNotes ?? '').split(',').map(item=>item.trim()).filter(Boolean);
  return <>
- <section className="vehicleDetail">
+ <div className="vehicleDetailBackdrop" onMouseDown={event=>{if(event.target===event.currentTarget)onClose()}}>
+ <section className="vehicleDetail vehicleDetailDrawer" onMouseDown={event=>event.stopPropagation()}>
+   <button className="vehicleDetailClose" onClick={onClose} aria-label="Fahrzeugdetails schließen"><X size={20}/></button>
    <div className="vehiclePhoto"><div className="truckIllustration"><div className="truckCab"></div><div className="truckBox"></div><div className="road"></div></div><button onClick={()=>setDrawerOpen(true)}><FileText size={16}/>Dokumente ({vehicle.documentCount ?? 0})</button></div>
    <div className="vehicleMain"><div className="vehicleTitle"><h2>{vehicle.plate}</h2>{canWrite&&<button className="vehicleEditButton" onClick={()=>setDrawerOpen(true)}><Pencil size={13}/> Bearbeiten</button>}</div><p>{vehicle.vehicle} <span>·</span> {vehicle.firstRegistration}</p>
      <div className="infoGrid"><div><span>VIN</span><strong>{vehicle.vin}</strong></div><div><span>Inventarnummer</span><strong>{vehicle.inventory}</strong></div><div><span>Versicherungsnummer</span><strong>{vehicle.insurance}</strong></div><div><span>Kfz-Steuernummer</span><strong>{vehicle.taxNumber}</strong></div><div><span>Finanzierung</span><strong>{vehicle.finance}</strong></div><div><span>Rate</span><strong>{vehicle.rate}</strong></div></div>
@@ -30,6 +33,7 @@ export function VehicleDetail({vehicle,onChanged}:{vehicle:Vehicle;onChanged?:()
      <div className="docsBox"><h3>Unterlagen vorhanden</h3>{docs.length?docs.slice(0,4).map((item,index)=><p key={`${item}-${index}`}>{item}</p>):<p className="muted">Noch keine Unterlagen synchronisiert</p>}<button onClick={()=>setDrawerOpen(true)}>Alle Unterlagen anzeigen</button></div>
    </div>
  </section>
+ </div>
  <VehicleCardDrawer vehicleId={vehicle.id} plate={vehicle.plate} open={drawerOpen} readOnly={!canWrite} onClose={()=>setDrawerOpen(false)} onChanged={onChanged}/>
  </>
 }
