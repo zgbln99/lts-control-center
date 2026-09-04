@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { FileText, ExternalLink, Check, X, Pencil } from 'lucide-react';
 import { DeadlineState, Vehicle } from '@/lib/fleet-types';
 import { VehicleCardDrawer } from '@/components/vehicle-card-drawer';
+import { SamsaraMiniMap } from '@/components/samsara-mini-map';
 
 function deadlineClass(state: DeadlineState | undefined) {if (state === 'critical') return 'deadlineCard deadlineCritical';if (state === 'warning') return 'deadlineCard deadlineWarn';return 'deadlineCard'}
 function deadlineText(state: DeadlineState | undefined) {if (state === 'critical') return 'überfällig';if (state === 'warning') return 'bald fällig';if (state === 'none') return 'kein Termin';return 'gültig'}
@@ -14,6 +15,7 @@ export function VehicleDetail({vehicle,onClose,onChanged}:{vehicle:Vehicle;onClo
  const [drawerOpen,setDrawerOpen]=useState(false); const [canWrite,setCanWrite]=useState(false);
  useEffect(()=>{fetch('/api/auth/me').then(r=>r.ok?r.json():null).then(p=>setCanWrite(['ADMIN','FUHRPARK'].includes(p?.user?.role))).catch(()=>setCanWrite(false))},[]);
  const docs=(vehicle.documentsNotes ?? '').split(',').map(item=>item.trim()).filter(Boolean);
+ const hasLocation=Number.isFinite(vehicle.latitude)&&Number.isFinite(vehicle.longitude);
  return <>
  <section className="vehicleDetail vehicleDetailInline">
    <button className="vehicleDetailClose" onClick={onClose} aria-label="Fahrzeugdetails schließen"><X size={20}/></button>
@@ -28,6 +30,7 @@ export function VehicleDetail({vehicle,onClose,onChanged}:{vehicle:Vehicle;onClo
      <div className="deadlineCard"><span>Kamera</span><EquipmentState value={vehicle.camera} positive="Vorhanden" negative="Nicht vorhanden"/></div>
      <div className="deadlineCard"><span>Beklebung</span><EquipmentState value={vehicle.wrapped} positive="LTS" negative="Nicht beklebt"/></div>
      <div className="samsaraBox"><h3>Samsara <em>{vehicle.samsara?'Verbunden':'Nicht verbunden'}</em></h3><div><span>Standort</span><strong>{vehicle.location}</strong></div><div><span>Letzte Aktualisierung</span><strong>{vehicle.locationAge}</strong></div><div><span>Kilometerstand</span><strong>{vehicle.mileage}</strong></div><Link href="/integrationen#samsara">Samsara Status <ExternalLink size={14}/></Link></div>
+     {hasLocation&&<div className="vehicleLocationMap"><div className="vehicleLocationMapHead"><div><span>Live-Standort</span><strong>{vehicle.location}</strong></div><small>{vehicle.locationAge}</small></div><SamsaraMiniMap vehicles={[{id:vehicle.id??vehicle.plate,plate:vehicle.plate,latitude:vehicle.latitude??null,longitude:vehicle.longitude??null,online:vehicle.samsaraOnline===true,location:vehicle.location,locationAge:vehicle.locationAge}]}/></div>}
      <div className="docsBox"><h3>Unterlagen vorhanden</h3>{docs.length?docs.slice(0,4).map((item,index)=><p key={`${item}-${index}`}>{item}</p>):<p className="muted">Noch keine Unterlagen synchronisiert</p>}<button onClick={()=>setDrawerOpen(true)}>Alle Unterlagen anzeigen</button></div>
    </div>
  </section>
