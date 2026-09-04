@@ -35,7 +35,7 @@ function requiredApiRoles(pathname:string,method:string):Role[]|null{
 export async function middleware(request:NextRequest){
   const {pathname}=request.nextUrl;
   if(pathname==='/api/ddd/batches'&&request.method==='POST'&&hasDddMachineToken(request)){const headers=new Headers(request.headers);headers.set('x-lts-machine','ddd-analyzer');return NextResponse.next({request:{headers}})}
-  if(PUBLIC_PATHS.includes(pathname)||pathname.startsWith('/_next/')||pathname==='/favicon.ico') return NextResponse.next();
+  if(PUBLIC_PATHS.includes(pathname)||pathname.startsWith('/api/public/documents/')||pathname.startsWith('/_next/')||pathname==='/favicon.ico') return NextResponse.next();
   const token=request.cookies.get(SESSION_COOKIE)?.value;
   if(!token){if(pathname.startsWith('/api/'))return NextResponse.json({error:'Unauthorized'},{status:401});const login=new URL('/login',request.url);login.searchParams.set('next',`${pathname}${request.nextUrl.search}`);return NextResponse.redirect(login)}
   try{
