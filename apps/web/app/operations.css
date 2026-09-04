@@ -33,3 +33,30 @@
 @media(max-width:760px){
   .vehicleDetail.vehicleDetailDrawer{width:100vw;grid-template-columns:1fr;padding:18px}.vehicleDetailDrawer .vehiclePhoto{max-width:none}.vehicleDetailClose{top:12px;right:12px}.vehicleDetailDrawer .detailCards{grid-template-columns:repeat(2,1fr)}
 }
+
+
+/* Inline vehicle expansion: keep the selected vehicle in table context. */
+.fleetRowSelected{background:#f0f8f4!important;box-shadow:inset 3px 0 0 #18aa61}
+.vehicleExpandRow{cursor:default!important;background:#f8fafc}
+.vehicleExpandRow:hover{background:#f8fafc!important}
+.tableWrap .vehicleExpandRow>td{height:auto!important;padding:0!important;white-space:normal!important;border-bottom:1px solid #dfe5ec}
+.vehicleInlineExpand{display:grid;grid-template-rows:0fr;opacity:0;animation:vehicleInlineOpen .28s cubic-bezier(.2,.78,.25,1) forwards}
+.vehicleInlineExpand>div{min-height:0;overflow:hidden}
+@keyframes vehicleInlineOpen{to{grid-template-rows:1fr;opacity:1}}
+.vehicleDetail.vehicleDetailInline{position:relative;margin:0;border:0;border-radius:0;box-shadow:none;background:linear-gradient(180deg,#fbfcfe 0%,#f7fafc 100%);padding:22px 24px 24px;grid-template-columns:220px 250px minmax(0,1fr);gap:22px;align-content:start}
+.vehicleDetailInline .vehicleDetailClose{top:16px;right:16px}
+.vehicleDetailInline .truckIllustration{height:220px}
+.vehicleDetailInline .vehicleTitle{padding-right:44px}
+.vehicleDetailInline .vehicleTitle h2{font-size:25px}
+.vehicleDetailInline .vehicleMain>p{font-size:11px;margin-bottom:20px}
+.vehicleDetailInline .infoGrid{gap:12px}
+.vehicleDetailInline .infoGrid div{grid-template-columns:112px 1fr;font-size:10px}
+.vehicleDetailInline .deadlineCard{min-height:92px;padding:12px}
+.vehicleDetailInline .deadlineCard span{font-size:10px}
+.vehicleDetailInline .deadlineCard strong{font-size:14px}
+.vehicleDetailInline .deadlineCard small{font-size:9px}
+.vehicleDetailInline .samsaraBox h3,.vehicleDetailInline .docsBox h3{font-size:11px}
+.vehicleDetailInline .samsaraBox>div,.vehicleDetailInline .docsBox p{font-size:10px}
+.vehicleDetailInline .vehiclePhoto button,.vehicleDetailInline .samsaraBox button,.vehicleDetailInline .docsBox button{height:36px;font-size:10px}
+@media(max-width:1200px){.vehicleDetail.vehicleDetailInline{grid-template-columns:190px 1fr}.vehicleDetailInline .detailCards{grid-column:1/-1}}
+@media(max-width:760px){.vehicleDetail.vehicleDetailInline{grid-template-columns:1fr;padding:18px}.vehicleDetailInline .vehiclePhoto{max-width:320px}.vehicleDetailInline .detailCards{grid-template-columns:repeat(2,1fr)}}

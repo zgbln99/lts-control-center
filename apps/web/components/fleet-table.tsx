@@ -1,8 +1,9 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Check, X, MoreHorizontal, SlidersHorizontal, Columns3, Plus } from 'lucide-react';
 import { Vehicle } from '@/lib/fleet-types';
 import { AddVehicleDrawer } from '@/components/add-vehicle-drawer';
+import { VehicleDetail } from '@/components/vehicle-detail';
 
 function YesNo({yes}:{yes:boolean|null}) {
  if (yes===null) return <span className="muted">—</span>;
@@ -19,7 +20,7 @@ function vehicleType(vehicle:Vehicle){
  return 'OTHER';
 }
 
-export function FleetTable({vehicles,onSelect,onChanged}:{vehicles:Vehicle[];onSelect:(v:Vehicle)=>void;onChanged?:()=>void|Promise<void>}){
+export function FleetTable({vehicles,selected,onSelect,onClose,onChanged}:{vehicles:Vehicle[];selected:Vehicle|null;onSelect:(v:Vehicle)=>void;onClose:()=>void;onChanged?:()=>void|Promise<void>}){
  const [query,setQuery]=useState(''); const [addOpen,setAddOpen]=useState(false); const [showExtra,setShowExtra]=useState(false); const [canWrite,setCanWrite]=useState(false);
  const [locationFilter,setLocationFilter]=useState('ALL'); const [typeFilter,setTypeFilter]=useState('ALL'); const [tuvFilter,setTuvFilter]=useState('ALL'); const [equipmentFilter,setEquipmentFilter]=useState('ALL'); const [samsaraFilter,setSamsaraFilter]=useState('ALL');
  useEffect(()=>{fetch('/api/auth/me').then(r=>r.ok?r.json():null).then(p=>setCanWrite(['ADMIN','FUHRPARK'].includes(p?.user?.role))).catch(()=>setCanWrite(false))},[]);
@@ -39,6 +40,7 @@ export function FleetTable({vehicles,onSelect,onChanged}:{vehicles:Vehicle[];onS
    return true;
  }),[query,vehicles,locationFilter,typeFilter,tuvFilter,equipmentFilter,samsaraFilter]);
  function resetFilters(){setLocationFilter('ALL');setTypeFilter('ALL');setTuvFilter('ALL');setEquipmentFilter('ALL');setSamsaraFilter('ALL');setQuery('')}
+ function choose(vehicle:Vehicle){selected?.id===vehicle.id?onClose():onSelect(vehicle)}
  const columns=10+(showExtra?2:0);
  return <>
  <div className="tableCard">
@@ -55,7 +57,7 @@ export function FleetTable({vehicles,onSelect,onChanged}:{vehicles:Vehicle[];onS
    </div>
    <div className="tableSearchMobile"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Kennzeichen, VIN, Inventarnummer…"/></div>
    <div className="tableWrap"><table><thead><tr><th>Kennzeichen</th><th>Fahrzeug</th><th>Erstzulassung</th>{showExtra&&<><th>VIN</th><th>Inventar</th></>}<th>Standort (live)</th><th>Kilometer</th><th>TÜV</th><th>Kamera</th><th>Beklebung</th><th>Samsara</th><th>Aktionen</th></tr></thead>
-   <tbody>{data.map(v=><tr key={v.id ?? v.plate} onClick={()=>onSelect(v)}><td className="plateCell"><i className={'rowState '+(v.tuvState==='critical'?'rowCritical':v.tuvState==='warning'?'rowWarning':'rowOk')}></i><strong>{v.plate}</strong></td><td>{v.vehicle}</td><td>{v.firstRegistration}</td>{showExtra&&<><td>{v.vin}</td><td>{v.inventory}</td></>}<td><strong>{v.location}</strong><small>{v.locationAge}</small></td><td>{v.mileage}</td><td><TuvBadge v={v}/></td><td><YesNo yes={v.camera}/></td><td><YesNo yes={v.wrapped}/></td><td>{v.samsara?<span className="online">Online</span>:<span className="muted">—</span>}</td><td><button className="dots" title="Fahrzeugkarte öffnen" onClick={event=>{event.stopPropagation();onSelect(v)}}><MoreHorizontal size={17}/></button></td></tr>)}{!data.length&&<tr><td colSpan={columns} className="emptyCell">Keine Fahrzeuge für diese Filter.</td></tr>}</tbody></table></div>
+   <tbody>{data.map(v=><Fragment key={v.id ?? v.plate}><tr className={selected?.id===v.id?'fleetRowSelected':''} onClick={()=>choose(v)}><td className="plateCell"><i className={'rowState '+(v.tuvState==='critical'?'rowCritical':v.tuvState==='warning'?'rowWarning':'rowOk')}></i><strong>{v.plate}</strong></td><td>{v.vehicle}</td><td>{v.firstRegistration}</td>{showExtra&&<><td>{v.vin}</td><td>{v.inventory}</td></>}<td><strong>{v.location}</strong><small>{v.locationAge}</small></td><td>{v.mileage}</td><td><TuvBadge v={v}/></td><td><YesNo yes={v.camera}/></td><td><YesNo yes={v.wrapped}/></td><td>{v.samsara?<span className="online">Online</span>:<span className="muted">—</span>}</td><td><button className="dots" title={selected?.id===v.id?'Fahrzeugkarte schließen':'Fahrzeugkarte öffnen'} onClick={event=>{event.stopPropagation();choose(v)}}><MoreHorizontal size={17}/></button></td></tr>{selected?.id===v.id&&<tr className="vehicleExpandRow"><td colSpan={columns}><div className="vehicleInlineExpand"><div><VehicleDetail vehicle={v} onClose={onClose} onChanged={onChanged}/></div></div></td></tr>}</Fragment>)}{!data.length&&<tr><td colSpan={columns} className="emptyCell">Keine Fahrzeuge für diese Filter.</td></tr>}</tbody></table></div>
  </div>
  {canWrite&&<AddVehicleDrawer open={addOpen} onClose={()=>setAddOpen(false)} onCreated={onChanged}/>}</>
 }
