@@ -172,3 +172,11 @@
 .driverDocumentsTable{min-width:1250px!important}
 @media(max-width:1150px){.driverProfileGrid{grid-template-columns:1fr}.driverProfileUpload{grid-template-columns:1fr 1fr}.driverProfileUpload input[type=file]{grid-column:1/-1}.driverProfileUpload button{grid-column:1/-1}}
 @media(max-width:760px){.driverHeroCard{grid-template-columns:54px 1fr}.driverAvatarLarge{width:50px;height:50px}.driverQuickContact{grid-column:1/-1;align-items:flex-start}.driverInfoGrid,.driverDeadlineGrid{grid-template-columns:1fr}.driverInfoGrid>div.wide{grid-column:auto}.driverProfileUpload{grid-template-columns:1fr}.driverProfileUpload input[type=file],.driverProfileUpload button{grid-column:auto}.driverProfileDoc{grid-template-columns:30px minmax(0,1fr)}.driverProfileDoc .documentActions{grid-column:1/-1;justify-content:flex-start}}
+
+.driverAvatarPhoto{width:62px;height:62px;border-radius:16px;object-fit:cover;border:1px solid #dfe6ec;background:#eef2f5}
+.driverSourceCard{padding:16px;border:1px solid #dfe7ec;border-radius:10px;background:#f7faf8}
+.driverSourceCard span,.driverSourceCard strong,.driverSourceCard small{display:block}
+.driverSourceCard span{font-size:8px;color:#7b8796}
+.driverSourceCard strong{margin:4px 0;font-size:14px;color:#17884f}
+.driverSourceCard small{font-size:9px;color:#667789}
+.driverSourceNote{margin:12px 0 0;font-size:9px;line-height:1.55;color:#728091}
