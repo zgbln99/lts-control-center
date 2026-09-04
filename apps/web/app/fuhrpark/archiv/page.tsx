@@ -24,6 +24,7 @@ export default function ArchivPage(){
   const [loading,setLoading]=useState(true);
   const [message,setMessage]=useState('');
   const [restoring,setRestoring]=useState<string|null>(null);
+  const [canWrite,setCanWrite]=useState(false);
 
   async function load(){
     setLoading(true);
@@ -35,7 +36,7 @@ export default function ArchivPage(){
     }catch(error){setMessage(error instanceof Error?error.message:'Fehler beim Laden.')}finally{setLoading(false)}
   }
 
-  useEffect(()=>{void load()},[]);
+  useEffect(()=>{void load();fetch('/api/auth/me').then(response=>response.ok?response.json():null).then(payload=>setCanWrite(['ADMIN','FUHRPARK'].includes(payload?.user?.role))).catch(()=>setCanWrite(false))},[]);
 
   const filtered=useMemo(()=>rows.filter(row=>{
     const text=`${row.plate} ${row.vehicle} ${row.vin ?? ''} ${row.inventoryNumber ?? ''} ${row.soldTo ?? ''}`.toLowerCase();
@@ -50,6 +51,7 @@ export default function ArchivPage(){
   }),[rows]);
 
   async function restore(row:ArchiveRow){
+    if(!canWrite) return;
     if(!window.confirm(`${row.plate} wieder in den aktiven Fuhrpark aufnehmen?`)) return;
     setRestoring(row.id); setMessage('');
     try{
@@ -76,7 +78,7 @@ export default function ArchivPage(){
         <span className="moduleCounter">{filtered.length} Fahrzeuge</span>
       </div>
       <div className="tableWrap"><table className="moduleDataTable archiveTable"><thead><tr><th>Kennzeichen</th><th>Fahrzeug</th><th>Status</th><th>Datum</th><th>Käufer / Empfänger</th><th>Kilometer</th><th>Preis</th><th>Dokumente</th><th>Aktion</th></tr></thead><tbody>
-        {filtered.map(row=><tr key={row.id}><td className="plateCell"><i className={'rowState '+(row.lifecycle==='SOLD'?'rowOk':'rowWarning')}></i><strong>{row.plate}</strong><small>{row.inventoryNumber||row.vin||'—'}</small></td><td><strong>{row.vehicle}</strong>{row.firstRegistration&&<small>EZ {dateFormatter.format(new Date(row.firstRegistration))}</small>}</td><td><span className={'archiveStatus '+row.lifecycle.toLowerCase()}>{lifecycleLabel[row.lifecycle]}</span></td><td>{row.soldAt?dateFormatter.format(new Date(row.soldAt)):'—'}</td><td>{row.soldTo||<span className="muted">—</span>}</td><td>{row.soldMileageKm!==null?`${numberFormatter.format(row.soldMileageKm)} km`:row.lastKnownMileageKm!==null?`${numberFormatter.format(row.lastKnownMileageKm)} km`:'—'}</td><td>{row.soldPrice?moneyFormatter.format(Number(row.soldPrice)):'—'}</td><td><span className="docCountBadge">{row.documentCount}</span></td><td><button className="restoreBtn" disabled={restoring===row.id} onClick={()=>restore(row)} title="Wieder aktivieren"><RotateCcw size={14}/>{restoring===row.id?'...':'Aktivieren'}</button></td></tr>)}
+        {filtered.map(row=><tr key={row.id}><td className="plateCell"><i className={'rowState '+(row.lifecycle==='SOLD'?'rowOk':'rowWarning')}></i><strong>{row.plate}</strong><small>{row.inventoryNumber||row.vin||'—'}</small></td><td><strong>{row.vehicle}</strong>{row.firstRegistration&&<small>EZ {dateFormatter.format(new Date(row.firstRegistration))}</small>}</td><td><span className={'archiveStatus '+row.lifecycle.toLowerCase()}>{lifecycleLabel[row.lifecycle]}</span></td><td>{row.soldAt?dateFormatter.format(new Date(row.soldAt)):'—'}</td><td>{row.soldTo||<span className="muted">—</span>}</td><td>{row.soldMileageKm!==null?`${numberFormatter.format(row.soldMileageKm)} km`:row.lastKnownMileageKm!==null?`${numberFormatter.format(row.lastKnownMileageKm)} km`:'—'}</td><td>{row.soldPrice?moneyFormatter.format(Number(row.soldPrice)):'—'}</td><td><span className="docCountBadge">{row.documentCount}</span></td><td>{canWrite?<button className="restoreBtn" disabled={restoring===row.id} onClick={()=>restore(row)} title="Wieder aktivieren"><RotateCcw size={14}/>{restoring===row.id?'...':'Aktivieren'}</button>:<span className="muted">—</span>}</td></tr>)}
         {!loading&&!filtered.length&&<tr><td colSpan={9} className="emptyCell">Keine Fahrzeuge für diese Auswahl.</td></tr>}
       </tbody></table></div>
     </section>

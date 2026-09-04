@@ -34,6 +34,7 @@ export default function TerminePage(){
   const [saving,setSaving]=useState(false);
   const [completing,setCompleting]=useState<string|null>(null);
   const [message,setMessage]=useState('');
+  const [canWrite,setCanWrite]=useState(false);
 
   async function load(){
     setLoading(true);
@@ -51,7 +52,7 @@ export default function TerminePage(){
     }finally{setLoading(false)}
   }
 
-  useEffect(()=>{void load()},[]);
+  useEffect(()=>{void load();fetch('/api/auth/me').then(response=>response.ok?response.json():null).then(payload=>setCanWrite(['ADMIN','FUHRPARK'].includes(payload?.user?.role))).catch(()=>setCanWrite(false))},[]);
 
   const filtered=useMemo(()=>rows.filter(row=>{
     const text=`${row.plate} ${row.vehicle} ${labels[row.type] ?? row.type} ${row.notes ?? ''}`.toLowerCase();
@@ -67,6 +68,7 @@ export default function TerminePage(){
 
   async function createDeadline(event:FormEvent<HTMLFormElement>){
     event.preventDefault();
+    if(!canWrite) return;
     const form=new FormData(event.currentTarget);
     const vehicleId=String(form.get('vehicleId') ?? '');
     const type=String(form.get('type') ?? '');
@@ -87,6 +89,7 @@ export default function TerminePage(){
   }
 
   async function completeDeadline(row:DeadlineRow){
+    if(!canWrite) return;
     setCompleting(row.id); setMessage('');
     try{
       const response=await fetch(`/api/deadlines/${row.id}/complete`,{method:'POST'});
@@ -112,13 +115,13 @@ export default function TerminePage(){
           <select value={stateFilter} onChange={e=>setStateFilter(e.target.value)}><option value="ALL">Alle Status</option><option value="critical">Überfällig</option><option value="warning">≤ 30 Tage</option><option value="ok">Später</option></select>
         </div>
         <div className="tableWrap"><table className="moduleDataTable deadlinesTable"><thead><tr><th>Fahrzeug</th><th>Termin</th><th>Fällig am</th><th>Status</th><th>Notiz</th><th>Aktion</th></tr></thead><tbody>
-          {filtered.map(row=><tr key={row.id}><td className="plateCell"><i className={'rowState '+(row.state==='critical'?'rowCritical':row.state==='warning'?'rowWarning':'rowOk')}></i><strong>{row.plate}</strong><small>{row.vehicle}</small></td><td><strong>{labels[row.type] ?? row.customType ?? row.type}</strong>{row.optional&&<small>optional</small>}</td><td><strong>{dateFormatter.format(new Date(row.dueDate))}</strong></td><td><span className={'badge '+(row.state==='critical'?'badgeBad':row.state==='warning'?'badgeWarn':'badgeOk')}>{daysText(row.dueDate)}</span></td><td>{row.notes || <span className="muted">—</span>}</td><td><button className="completeBtn" disabled={completing===row.id} onClick={()=>completeDeadline(row)}><Check size={13}/>{completing===row.id?'...':'Erledigt'}</button></td></tr>)}
+          {filtered.map(row=><tr key={row.id}><td className="plateCell"><i className={'rowState '+(row.state==='critical'?'rowCritical':row.state==='warning'?'rowWarning':'rowOk')}></i><strong>{row.plate}</strong><small>{row.vehicle}</small></td><td><strong>{labels[row.type] ?? row.customType ?? row.type}</strong>{row.optional&&<small>optional</small>}</td><td><strong>{dateFormatter.format(new Date(row.dueDate))}</strong></td><td><span className={'badge '+(row.state==='critical'?'badgeBad':row.state==='warning'?'badgeWarn':'badgeOk')}>{daysText(row.dueDate)}</span></td><td>{row.notes || <span className="muted">—</span>}</td><td>{canWrite?<button className="completeBtn" disabled={completing===row.id} onClick={()=>completeDeadline(row)}><Check size={13}/>{completing===row.id?'...':'Erledigt'}</button>:<span className="muted">—</span>}</td></tr>)}
           {!loading&&!filtered.length&&<tr><td colSpan={6} className="emptyCell">Keine Termine für diese Auswahl.</td></tr>}
         </tbody></table></div>
       </section>
 
       <aside className="rightRail">
-        <form className="railCard deadlineForm" onSubmit={createDeadline}>
+        {canWrite?<form className="railCard deadlineForm" onSubmit={createDeadline}>
           <div className="railHead"><h3>Neuen Termin anlegen</h3><Plus size={16}/></div>
           <label><span>Fahrzeug</span><select name="vehicleId" required defaultValue=""><option value="" disabled>Fahrzeug wählen</option>{vehicles.map(vehicle=><option key={vehicle.id} value={vehicle.id}>{vehicle.plate} · {vehicle.vehicle}</option>)}</select></label>
           <label><span>Typ</span><select name="type" required defaultValue="TUV">{Object.entries(labels).map(([value,label])=><option key={value} value={value}>{label}{value==='UVV'?' (optional)':''}</option>)}</select></label>
@@ -126,7 +129,7 @@ export default function TerminePage(){
           <label><span>Notiz</span><textarea name="notes" rows={3} placeholder="z. B. Termin bei DEKRA"/></label>
           <button className="greenBtn deadlineSubmit" type="submit" disabled={saving}>{saving?'Speichern ...':'Termin speichern'}</button>
           {message&&<p className="formMessage">{message}</p>}
-        </form>
+        </form>:<div className="railCard infoRail"><h3>Nur Lesen</h3><p>Termine können von Fuhrpark und Administratoren angelegt oder als erledigt markiert werden.</p></div>}
         <div className="railCard infoRail"><h3>Logik</h3><p><b>TÜV, SP und Tacho</b> ersetzen beim Speichern automatisch den bisherigen offenen Termin desselben Typs.</p><p><b>UVV</b> wird weiterhin als optionaler Termin geführt.</p></div>
       </aside>
     </div>
