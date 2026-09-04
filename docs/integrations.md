@@ -119,10 +119,11 @@ DDD_ANALYZER_URL=
 DDD_ANALYZER_API_TOKEN=
 ```
 
-Control Center posiada neutralny endpoint wejściowy:
+Control Center posiada neutralny endpoint wejściowy. Zewnętrzny analyzer uwierzytelnia się tokenem `DDD_ANALYZER_API_TOKEN`; użytkownik zalogowany do Control Center nadal może korzystać z endpointu przez swoją sesję:
 
 ```http
 POST /api/ddd/batches
+Authorization: Bearer <DDD_ANALYZER_API_TOKEN>
 Content-Type: application/json
 ```
 
