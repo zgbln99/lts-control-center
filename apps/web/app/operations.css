@@ -82,3 +82,16 @@
 .osmAttribution{position:absolute;right:4px;bottom:3px;z-index:6;background:rgba(255,255,255,.82);border-radius:3px;padding:1px 3px;color:#58697a!important;font-size:6px!important;text-decoration:none}
 .samsaraMapEmpty{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:7px;color:#718095;text-align:center;padding:16px}
 .samsaraMapEmpty span{font-size:9px;line-height:1.4}
+
+
+/* Selected vehicle location map --------------------------------------------- */
+.samsaraRailHint{margin:8px 0 12px;color:#7b8798;font-size:9px;line-height:1.45}
+.vehicleLocationMap{grid-column:1/-1;min-width:0;border:1px solid #dde5ec;border-radius:11px;background:#fff;padding:12px;overflow:hidden}
+.vehicleLocationMapHead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:9px}
+.vehicleLocationMapHead span,.vehicleLocationMapHead strong{display:block}
+.vehicleLocationMapHead span{font-size:9px;color:#7c8898;margin-bottom:3px}
+.vehicleLocationMapHead strong{font-size:11px;color:#263548}
+.vehicleLocationMapHead small{font-size:8px;color:#8793a2;white-space:nowrap}
+.vehicleLocationMap .miniMap{height:260px;margin:0;width:100%;border-radius:9px}
+.vehicleDetailInline .vehicleLocationMap .samsaraMarker em{max-width:220px}
+@media(max-width:760px){.vehicleLocationMapHead{flex-direction:column;gap:3px}.vehicleLocationMap .miniMap{height:220px}}
