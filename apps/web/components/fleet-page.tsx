@@ -12,12 +12,12 @@ import { Truck, CalendarDays, TriangleAlert, Camera, Sticker, MapPin, ArrowRight
 type ApiDeadline = { dueDate: string; state: DeadlineState } | null;
 type ApiVehicle = {
   id: string; plate: string; category:VehicleCategory; vehicle: string; firstRegistration: string | null; vin: string | null;
-  insuranceNumber: string | null; taxNumber: string | null; inventoryNumber: string | null; financingEnd: string | null;
+  insuranceNumber: string | null; taxNumber: string | null; inventoryNumber: string | null; financingEnd: string | null; grossVehicleWeightKg: number | null; powerKw: string | null; powerHp: string | null;
   financingEndRaw: string | null; monthlyRate: string | null; documentsNotes: string | null; cameraInstalled: boolean | null;
   wrapped: boolean | null; samsara: { connected: boolean; online: boolean | null; location: string | null; odometerKm: number | null; latitude: number | null; longitude: number | null; lastSeenAt: string | null };
-  deadlines: { tuv: ApiDeadline; sp: ApiDeadline; tacho: ApiDeadline }; documentCount: number;
+  deadlines: { tuv: ApiDeadline; sp: ApiDeadline; tacho: ApiDeadline; uvv: ApiDeadline }; documentCount: number;
 };
-type LoadedVehicle = Vehicle & { samsaraOnline?: boolean | null; latitude?: number | null; longitude?: number | null; upcoming?: { type: 'TÜV' | 'SP' | 'Tacho'; dueDate: string; state: DeadlineState }[] };
+type LoadedVehicle = Vehicle & { samsaraOnline?: boolean | null; latitude?: number | null; longitude?: number | null; upcoming?: { type: 'TÜV' | 'SP' | 'Tacho' | 'UVV'; dueDate: string; state: DeadlineState }[] };
 
 const dateFormatter = new Intl.DateTimeFormat('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
 const monthFormatter = new Intl.DateTimeFormat('de-DE', { month:'2-digit', year:'numeric' });
@@ -39,7 +39,7 @@ function relativeTime(value?: string | null) {
   if (hours < 24) return `vor ${hours} Std.`;
   return dateFormatter.format(date);
 }
-function deadlineEntry(type:'TÜV'|'SP'|'Tacho', deadline:ApiDeadline) {
+function deadlineEntry(type:'TÜV'|'SP'|'Tacho'|'UVV', deadline:ApiDeadline) {
   return deadline ? { type, dueDate:deadline.dueDate, state:deadline.state } : null;
 }
 function mapApiVehicle(row: ApiVehicle): LoadedVehicle {
@@ -50,6 +50,7 @@ function mapApiVehicle(row: ApiVehicle): LoadedVehicle {
     deadlineEntry('TÜV', row.deadlines.tuv),
     deadlineEntry('SP', row.deadlines.sp),
     deadlineEntry('Tacho', row.deadlines.tacho),
+    deadlineEntry('UVV', row.deadlines.uvv),
   ].filter((item): item is NonNullable<typeof item> => Boolean(item));
 
   return {
@@ -60,6 +61,9 @@ function mapApiVehicle(row: ApiVehicle): LoadedVehicle {
     tuv:formatMonth(row.deadlines.tuv?.dueDate),tuvState:row.deadlines.tuv?.state??'none',
     sp:formatMonth(row.deadlines.sp?.dueDate),spState:row.deadlines.sp?.state??'none',
     tacho:formatMonth(row.deadlines.tacho?.dueDate),tachoState:row.deadlines.tacho?.state??'none',
+    uvv:formatMonth(row.deadlines.uvv?.dueDate),uvvState:row.deadlines.uvv?.state??'none',
+    power:row.powerKw||row.powerHp?[row.powerKw?numberFormatter.format(Number(row.powerKw))+' kW':null,row.powerHp?numberFormatter.format(Number(row.powerHp))+' PS':null].filter(Boolean).join(' / '):'—',
+    grossWeight:row.grossVehicleWeightKg===null?'—':numberFormatter.format(row.grossVehicleWeightKg)+' kg',
     camera:row.cameraInstalled,wrapped:row.wrapped,samsara:row.samsara.connected,samsaraOnline:row.samsara.online,latitude:row.samsara.latitude,longitude:row.samsara.longitude,
     vin:row.vin||'—',inventory:row.inventoryNumber||'—',insurance:row.insuranceNumber||'—',taxNumber:row.taxNumber||'—',
     finance,rate:paid||!Number.isFinite(numericRate)?'—':moneyFormatter.format(numericRate),
@@ -139,7 +143,7 @@ export function FleetPage({view}:{view:'all'|'trailer'}) {
       </div><aside className="rightRail">
         <div className="railCard"><div className="railHead"><h3>Fahrzeuge live (Samsara)</h3></div><strong className="onlineText">{stats.online} online</strong><SamsaraMiniMap vehicles={fleet.map(vehicle=>({id:vehicle.id??vehicle.plate,plate:vehicle.plate,latitude:vehicle.latitude??null,longitude:vehicle.longitude??null,online:vehicle.samsaraOnline===true,location:vehicle.location,locationAge:vehicle.locationAge}))} onSelect={id=>{const vehicle=fleet.find(item=>(item.id??item.plate)===id);if(vehicle)setSelected(vehicle)}}/><Link href="/integrationen#samsara">Samsara Status <ArrowRight size={13}/></Link></div>
         <div className="railCard"><div className="railHead"><h3>Kritische Alerts</h3><Link href="/fuhrpark/termine">Alle anzeigen</Link></div><div className="alertRow"><span className="alertIcon redA"><TriangleAlert size={18}/></span><div><strong>{stats.tuvCritical} Fahrzeuge</strong><span>TÜV überfällig</span></div><Link href="/fuhrpark/termine">Jetzt prüfen</Link></div><div className="alertRow"><span className="alertIcon orangeA"><TriangleAlert size={18}/></span><div><strong>{stats.tuvWarning} Fahrzeuge</strong><span>TÜV in 30 Tagen</span></div><Link href="/fuhrpark/termine">Termine prüfen</Link></div><div className="alertRow"><span className="alertIcon orangeA"><Camera size={18}/></span><div><strong>{stats.withoutCamera} Fahrzeuge</strong><span>Ohne Kamera</span></div><Link href="/fuhrpark/kategorien">Bestand prüfen</Link></div></div>
-        <div className="railCard"><div className="railHead"><h3>Nächste Termine</h3><Link href="/fuhrpark/termine">Alle anzeigen</Link></div>{terms.length?terms.map(r=><div className="termRow" key={r.plate+r.type+r.dueDate}><span><Clock3 size={13}/></span><div><strong>{r.plate}</strong><small>{r.type==='SP'?'Sicherheitsprüfung':r.type==='Tacho'?'Tachoprüfung':'TÜV Prüfung'}</small></div><div className="termDate"><strong>{dateFormatter.format(new Date(r.dueDate))}</strong><small>{daysText(r.dueDate)}</small></div></div>):<p className="muted">Noch keine Termine erfasst.</p>}<Link className="calendarLink" href="/fuhrpark/termine">Kalender öffnen <ArrowRight size={13}/></Link></div>
+        <div className="railCard"><div className="railHead"><h3>Nächste Termine</h3><Link href="/fuhrpark/termine">Alle anzeigen</Link></div>{terms.length?terms.map(r=><div className="termRow" key={r.plate+r.type+r.dueDate}><span><Clock3 size={13}/></span><div><strong>{r.plate}</strong><small>{r.type==='SP'?'Sicherheitsprüfung':r.type==='Tacho'?'Tachoprüfung':r.type==='UVV'?'UVV':'TÜV Prüfung'}</small></div><div className="termDate"><strong>{dateFormatter.format(new Date(r.dueDate))}</strong><small>{daysText(r.dueDate)}</small></div></div>):<p className="muted">Noch keine Termine erfasst.</p>}<Link className="calendarLink" href="/fuhrpark/termine">Kalender öffnen <ArrowRight size={13}/></Link></div>
       </aside></div>
     </div>
   </main></div>;
