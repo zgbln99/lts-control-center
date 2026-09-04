@@ -12,7 +12,8 @@ export function VehiclePhotoPanel({vehicleId,plate,photo,readOnly,onReload}:{veh
   async function upload(event:FormEvent<HTMLFormElement>){
     event.preventDefault();
     if(readOnly)return;
-    const form=new FormData(event.currentTarget);
+    const formElement=event.currentTarget;
+    const form=new FormData(formElement);
     const file=form.get('file');
     if(!(file instanceof File)||!file.size)return;
     setUploading(true);setMessage('');
@@ -20,7 +21,7 @@ export function VehiclePhotoPanel({vehicleId,plate,photo,readOnly,onReload}:{veh
       const response=await fetch(`/api/vehicles/${vehicleId}/photo`,{method:'POST',body:form});
       const payload=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(payload.error||'Foto konnte nicht gespeichert werden.');
-      event.currentTarget.reset();
+      formElement.reset();
       setMessage('Fahrzeugfoto in MEGA S4 gespeichert.');
       await onReload();
     }catch(error){setMessage(error instanceof Error?error.message:'Fehler beim Foto-Upload.')}
