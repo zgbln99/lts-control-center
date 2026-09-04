@@ -3,8 +3,23 @@ import { prisma } from '@lts/db';
 
 export const dynamic='force-dynamic';
 
+async function checkDddPortal(){
+  const url=process.env.DDD_ANALYZER_URL?.trim();
+  if(!url)return{reachable:false,httpStatus:null};
+  try{
+    const response=await fetch(url,{method:'GET',cache:'no-store',redirect:'manual',signal:AbortSignal.timeout(2500)});
+    return{reachable:response.status>0&&response.status<500,httpStatus:response.status};
+  }catch{
+    return{reachable:false,httpStatus:null};
+  }
+}
+
 export async function GET(){
-  const [vehicleCount,samsaraVehicles,telemetryCount,latestTelemetry,documentCount,latestDocument,driverCount,activeDriverCount,folderMappings,states,dddBatches,dddViolations,latestDdd]=await Promise.all([
+  const [
+    vehicleCount,samsaraVehicles,telemetryCount,latestTelemetry,documentCount,latestDocument,
+    driverCount,activeDriverCount,folderMappings,states,dddBatches,dddViolations,
+    dddMatchedDrivers,dddUnmatchedDrivers,dddOpen,dddCritical,latestDdd,dddPortal
+  ]=await Promise.all([
     prisma.vehicle.count({where:{lifecycle:'ACTIVE'}}),
     prisma.vehicle.count({where:{lifecycle:'ACTIVE',samsaraId:{not:null}}}),
     prisma.vehicleTelemetry.count(),
@@ -17,7 +32,12 @@ export async function GET(){
     prisma.integrationState.findMany(),
     prisma.dddAnalysisBatch.count(),
     prisma.tachographViolation.count(),
+    prisma.tachographViolation.count({where:{driverId:{not:null}}}),
+    prisma.tachographViolation.count({where:{driverId:null}}),
+    prisma.tachographViolation.count({where:{acknowledgedAt:null}}),
+    prisma.tachographViolation.count({where:{acknowledgedAt:null,severity:{equals:'CRITICAL',mode:'insensitive'}}}),
     prisma.dddAnalysisBatch.findFirst({orderBy:{createdAt:'desc'},select:{createdAt:true,source:true,status:true}}),
+    checkDddPortal(),
   ]);
   const state=Object.fromEntries(states.map(row=>[row.key,row]));
   return NextResponse.json({generatedAt:new Date().toISOString(),integrations:{
@@ -27,6 +47,19 @@ export async function GET(){
     n8n:{configured:Boolean((process.env.N8N_API_URL&&process.env.N8N_API_KEY)||process.env.N8N_WEBHOOK_BASE_URL),lastStatus:state.N8N?.lastStatus??null},
     meta:{configured:Boolean(process.env.META_WABA_ID&&process.env.META_PHONE_NUMBER_ID&&process.env.META_ACCESS_TOKEN),lastStatus:state.META?.lastStatus??null},
     vacation:{configured:Boolean(process.env.VACATION_PORTAL_URL),url:process.env.VACATION_PORTAL_URL||null,lastStatus:state.VACATION_PORTAL?.lastStatus??null},
-    ddd:{configured:Boolean(process.env.DDD_ANALYZER_URL),batches:dddBatches,violations:dddViolations,lastImportAt:latestDdd?.createdAt?.toISOString()??null,lastSource:latestDdd?.source??null,lastStatus:latestDdd?.status??null},
+    ddd:{
+      configured:Boolean(process.env.DDD_ANALYZER_URL),
+      portalReachable:dddPortal.reachable,
+      portalHttpStatus:dddPortal.httpStatus,
+      batches:dddBatches,
+      violations:dddViolations,
+      matchedDrivers:dddMatchedDrivers,
+      unmatchedDrivers:dddUnmatchedDrivers,
+      open:dddOpen,
+      critical:dddCritical,
+      lastImportAt:latestDdd?.createdAt?.toISOString()??null,
+      lastSource:latestDdd?.source??null,
+      lastStatus:latestDdd?.status??null,
+    },
   }});
 }
