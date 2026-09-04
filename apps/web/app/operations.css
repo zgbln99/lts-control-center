@@ -191,3 +191,19 @@
 .driverViolationRow{display:grid;grid-template-columns:minmax(180px,1.4fr) 150px 95px 90px 90px;align-items:center;gap:10px;padding:9px 10px;border:1px solid #e2e7ec;border-radius:8px;background:#fff}
 .driverViolationRow>div{min-width:0}.driverViolationRow strong,.driverViolationRow small{display:block}.driverViolationRow strong{font-size:9px;color:#2a3a4c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.driverViolationRow small{margin-top:2px;font-size:8px;color:#7e8a98;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.driverViolationRow>span:not(.entityStatus){font-size:8px;color:#657587}
 @media(max-width:900px){.driverViolationRow{grid-template-columns:1fr 1fr}.driverViolationRow>div{grid-column:1/-1}.driverViolationKpis{grid-template-columns:1fr}}
+
+
+/* DDD operations ------------------------------------------------------------- */
+.dddDriverScope{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;padding:9px 11px;border:1px solid #dbe7df;border-radius:9px;background:#f5faf7;font-size:9px;color:#5f6f7f}
+.dddDriverScope a{color:#16864f;font-weight:700;text-decoration:none}
+.dddKpiButton{border:0;text-align:left;cursor:pointer}
+.dddKpiButton.dddKpiActive{outline:2px solid #b9dec8;outline-offset:-2px}
+.dddViewTabs{display:flex;gap:4px;padding:3px;border:1px solid #e0e5ea;border-radius:8px;background:#f5f7f9}
+.dddViewTabs button{border:0;background:transparent;border-radius:6px;padding:6px 8px;font-size:8px;color:#667689;cursor:pointer}
+.dddViewTabs button.active{background:#fff;color:#18864f;box-shadow:0 1px 3px rgba(20,40,60,.08);font-weight:700}
+.violationDriverLink{display:block;text-decoration:none;color:inherit}.violationDriverLink:hover strong{color:#18864f}.violationDriverLink strong,.violationDriverLink small{display:block}
+.dddBatchCard{margin-top:14px;padding:16px}.dddBatchCard .modulePageHead{margin-bottom:12px}
+.dddBatchList{display:flex;flex-direction:column;gap:6px}
+.dddBatchRow{display:grid;grid-template-columns:minmax(160px,1.1fr) 180px 110px 90px 150px;align-items:center;gap:10px;padding:9px 10px;border:1px solid #e0e6eb;border-radius:8px;background:#fff}
+.dddBatchRow>div{min-width:0}.dddBatchRow>div strong,.dddBatchRow>div small{display:block}.dddBatchRow>div strong{font-size:9px;color:#2c3d50}.dddBatchRow>div small,.dddBatchRow>small,.dddBatchRow>span:not(.entityStatus){font-size:8px;color:#758395}
+@media(max-width:1050px){.dddViewTabs{order:3;width:100%;overflow:auto}.dddBatchRow{grid-template-columns:1fr 1fr}.dddBatchRow>div{grid-column:1/-1}}
