@@ -447,6 +447,7 @@ model DddAnalysisBatch {
   violations  TachographViolation[]
   @@index([createdAt])
   @@index([externalId])
+  @@unique([source, externalId])
 }
 
 model TachographViolation {
