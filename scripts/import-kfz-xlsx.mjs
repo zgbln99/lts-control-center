@@ -156,12 +156,28 @@ const duplicateCanonicalPlates = Object.entries(vehicles.reduce((acc, vehicle) =
   return acc;
 }, {})).filter(([, count]) => count > 1);
 
+const duplicateVins = Object.entries(vehicles.reduce((acc, vehicle) => {
+  if (vehicle.vin) acc[vehicle.vin] = (acc[vehicle.vin] ?? 0) + 1;
+  return acc;
+}, {})).filter(([, count]) => count > 1);
+
+const aliasOwners = new Map();
+for (const vehicle of vehicles) {
+  for (const alias of vehicle.plateAliases) {
+    const owners = aliasOwners.get(alias) ?? [];
+    owners.push(vehicle.plate);
+    aliasOwners.set(alias, owners);
+  }
+}
+const aliasCollisions = [...aliasOwners.entries()].filter(([, owners]) => new Set(owners).size > 1);
+
 const result = {
   generatedAt: new Date().toISOString(), sourceFile: path.basename(input),
   stats: {
     vehicles: vehicles.length, activeVehicles: vehicles.filter(v => v.lifecycle === 'ACTIVE').length,
     soldVehicles: vehicles.filter(v => v.lifecycle === 'SOLD').length, archivedVehicles: vehicles.filter(v => v.lifecycle === 'ARCHIVED').length,
-    vehiclesWithAliases: vehicles.filter(v => v.plateAliases.length > 1).length, hookLoadPeriods: hookLoadPeriods.length, duplicateCanonicalPlates,
+    vehiclesWithAliases: vehicles.filter(v => v.plateAliases.length > 1).length, hookLoadPeriods: hookLoadPeriods.length,
+    duplicateCanonicalPlates, duplicateVins, aliasCollisions,
   },
   vehicles, hookLoadPeriods,
 };
@@ -173,7 +189,9 @@ console.log(`Active: ${result.stats.activeVehicles}, sold: ${result.stats.soldVe
 console.log(`Historical plate aliases: ${result.stats.vehiclesWithAliases}.`);
 console.log(`Hakenlast periods: ${result.stats.hookLoadPeriods}.`);
 console.log(`Preview written to ${output}`);
-if (duplicateCanonicalPlates.length) {
-  console.warn('Duplicate canonical plates require manual review:', duplicateCanonicalPlates);
-  process.exitCode = 2;
-}
+const validationIssues = [];
+if (duplicateCanonicalPlates.length) validationIssues.push(['duplicate canonical plates', duplicateCanonicalPlates]);
+if (duplicateVins.length) validationIssues.push(['duplicate VINs', duplicateVins]);
+if (aliasCollisions.length) validationIssues.push(['plate alias collisions', aliasCollisions]);
+for (const [label, issues] of validationIssues) console.warn(`${label} require manual review:`, issues);
+if (validationIssues.length) process.exitCode = 2;
