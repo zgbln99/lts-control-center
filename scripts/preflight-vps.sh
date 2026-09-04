@@ -11,10 +11,10 @@ fi
 
 env_value() {
   key="$1"
-  value="$(grep -E "^\${key}=" .env | tail -n 1 | cut -d= -f2- | tr -d '\r' || true)"
+  value="$(grep -E "^${key}=" .env | tail -n 1 | cut -d= -f2- | tr -d '\r' || true)"
   case "$value" in
-    \"*\") value="$(printf '%s' "$value" | sed 's/^"//;s/"$//')" ;;
-    \'*\') value="$(printf '%s' "$value" | sed "s/^'//;s/'$//")" ;;
+    \"*\") value="$(printf '%s' "$value" | sed 's/^\"//;s/\"$//')" ;;
+    \'*\') value="$(printf '%s' "$value" | sed "s/^\'//;s/\'$//")" ;;
   esac
   printf '%s' "$value"
 }
@@ -25,7 +25,7 @@ POSTGRES_PASSWORD="$(env_value POSTGRES_PASSWORD)"
 DATABASE_URL="$(env_value DATABASE_URL)"
 AUTH_SECRET="$(env_value AUTH_SECRET)"
 
-APP_BIND_IP="\${APP_BIND_IP:-127.0.0.1}"
+APP_BIND_IP="${APP_BIND_IP:-127.0.0.1}"
 
 if [ -z "$APP_PORT" ]; then
   echo "ERROR: APP_PORT must be set in .env." >&2
@@ -49,7 +49,7 @@ if [ -z "$DATABASE_URL" ]; then
   exit 1
 fi
 
-if [ "\${#AUTH_SECRET}" -lt 32 ]; then
+if [ "${#AUTH_SECRET}" -lt 32 ]; then
   echo "ERROR: AUTH_SECRET must contain at least 32 characters." >&2
   exit 1
 fi
@@ -76,15 +76,15 @@ if ! docker compose config >/dev/null; then
   exit 1
 fi
 
-if command -v ss >/dev/null 2>&1 && ss -ltnH | awk '{print $4}' | grep -Eq "(^|:)\${APP_PORT}$"; then
-  echo "ERROR: TCP port \${APP_PORT} is already in use on this VPS." >&2
-  ss -ltnp 2>/dev/null | grep -E ":\${APP_PORT}[[:space:]]" || true
+if command -v ss >/dev/null 2>&1 && ss -ltnH | awk '{print $4}' | grep -Eq "(^|:)${APP_PORT}$"; then
+  echo "ERROR: TCP port ${APP_PORT} is already in use on this VPS." >&2
+  ss -ltnp 2>/dev/null | grep -E ":${APP_PORT}[[:space:]]" || true
   exit 1
 fi
 
 echo "OK: Docker and Compose are available."
-echo "OK: APP_PORT=\${APP_PORT} is free."
-echo "OK: web will bind to \${APP_BIND_IP}:\${APP_PORT}, not directly to public 80/443."
+echo "OK: APP_PORT=${APP_PORT} is free."
+echo "OK: web will bind to ${APP_BIND_IP}:${APP_PORT}, not directly to public 80/443."
 echo
 echo "Existing Docker containers:"
 docker ps --format 'table {{.Names}}\t{{.Ports}}\t{{.Status}}' || true
