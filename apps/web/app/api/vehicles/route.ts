@@ -23,7 +23,7 @@ export async function GET(request:NextRequest) {
     insuranceNumber:vehicle.insuranceNumber,taxNumber:vehicle.taxNumber,grossVehicleWeightKg:vehicle.grossVehicleWeightKg,inventoryNumber:vehicle.inventoryNumber,
     financingEnd:formatDate(vehicle.financingEnd),financingEndRaw:vehicle.financingEndRaw,monthlyRate:vehicle.monthlyRate?.toString()??vehicle.rateRaw,documentsNotes:vehicle.documentsNotes,notes:vehicle.notes,
     cameraInstalled:vehicle.cameraInstalled,wrapped:vehicle.wrapped,wrapType:vehicle.wrapType,
-    samsara:{connected:Boolean(vehicle.samsaraId),id:vehicle.samsaraId,online:vehicle.telemetry?.online??null,location:vehicle.telemetry?.geofenceName||vehicle.telemetry?.locationLabel||vehicle.telemetry?.address||null,odometerKm:vehicle.telemetry?.odometerKm??null,lastSeenAt:vehicle.telemetry?.lastSeenAt?.toISOString()??null},
+    samsara:{connected:Boolean(vehicle.samsaraId),id:vehicle.samsaraId,online:vehicle.telemetry?.online??null,location:vehicle.telemetry?.geofenceName||vehicle.telemetry?.locationLabel||vehicle.telemetry?.address||null,odometerKm:vehicle.telemetry?.odometerKm??null,latitude:vehicle.telemetry?.latitude??null,longitude:vehicle.telemetry?.longitude??null,lastSeenAt:vehicle.telemetry?.lastSeenAt?.toISOString()??null},
     deadlines:{tuv:tuv?{dueDate:tuv.dueDate.toISOString(),state:deadlineState(tuv.dueDate)}:null,sp:sp?{dueDate:sp.dueDate.toISOString(),state:deadlineState(sp.dueDate)}:null,tacho:tacho?{dueDate:tacho.dueDate.toISOString(),state:deadlineState(tacho.dueDate)}:null},documentCount:vehicle._count.documents,
   }});
   return NextResponse.json({generatedAt:new Date().toISOString(),total:rows.length,vehicles:rows});
