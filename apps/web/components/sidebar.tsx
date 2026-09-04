@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Truck, Container, CalendarDays, Wrench, Archive, UserRound, IdCard, CreditCard,
-  MessageCircle, FileText, Workflow, FolderOpen, BarChart3, ReceiptEuro, Settings, ShieldAlert, Files, Boxes
+  MessageCircle, FileText, Workflow, FolderOpen, BarChart3, ReceiptEuro, Settings, ShieldAlert, Boxes
 } from 'lucide-react';
 
 type Role='ADMIN'|'FUHRPARK'|'PERSONAL'|'DISPOSITION'|'READ_ONLY';
@@ -32,7 +32,6 @@ const sections:{title:string;items:Item[]}[]=[
     {label:'Fahrer',icon:UserRound,href:'/fahrer',roles:drivers},
     {label:'Führerscheine',icon:IdCard,href:'/fahrer/fuehrerscheine',roles:drivers},
     {label:'Fahrerkarten',icon:CreditCard,href:'/fahrer/fahrerkarten',roles:drivers},
-    {label:'Fahrerdokumente',icon:Files,href:'/fahrer/dokumente',roles:drivers},
     {label:'Verstoßauswertung',icon:ShieldAlert,href:'/fahrer/verstoesse',roles:violations},
   ]},
   {title:'KOMMUNIKATION',items:[
