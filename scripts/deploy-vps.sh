@@ -6,7 +6,7 @@ cd "$ROOT_DIR"
 
 ./scripts/preflight-vps.sh
 
-APP_PORT="$(grep -E '^APP_PORT=' .env | tail -n 1 | cut -d= -f2- | tr -d '\r' | sed 's/^"//;s/"$//;s/^\'//;s/\'$//')"
+APP_PORT="$(grep -E '^APP_PORT=' .env | tail -n 1 | cut -d= -f2- | tr -d '\r"')"
 
 echo
 echo "Building LTS Control Center only..."
