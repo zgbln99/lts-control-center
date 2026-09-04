@@ -8,6 +8,7 @@ const onlineThresholdMinutes=Number(process.env.SAMSARA_ONLINE_THRESHOLD_MINUTES
 const prisma=new PrismaClient();
 
 function clean(value){return String(value??'').trim().replace(/\s+/g,' ')}
+function normalizeCard(value){const card=String(value??'').trim().toUpperCase().replace(/\s+/g,'');return card||null}
 function normalizePlate(value){const raw=clean(value).toUpperCase();if(!raw)return null;const compact=raw.replace(/-/g,' ');const match=compact.match(/^([A-ZÄÖÜ]{1,3})\s+([A-ZÄÖÜ]{1,2})\s*([0-9]+[A-Z]?)$/);return match?`${match[1]}-${match[2]} ${match[3]}`:raw.replace(/\s*-\s*/g,'-').replace(/\s+/g,' ')}
 async function samsaraGet(pathname,params={}){const url=new URL(`${baseUrl}${pathname}`);for(const [key,value] of Object.entries(params)){if(value!==null&&value!==undefined&&value!=='')url.searchParams.set(key,String(value))}const response=await fetch(url,{headers:{Authorization:`Bearer ${token}`,Accept:'application/json'}});if(!response.ok){const body=await response.text();throw new Error(`Samsara ${response.status} ${pathname}: ${body.slice(0,500)}`)}return response.json()}
 async function paginate(pathname,params={}){const data=[];let after;do{const payload=await samsaraGet(pathname,{...params,after});data.push(...(payload.data??[]));after=payload.pagination?.hasNextPage?payload.pagination?.endCursor:undefined}while(after);return data}
@@ -104,7 +105,7 @@ async function syncDrivers(){
   const dbDrivers=await prisma.driver.findMany({select:{id:true,samsaraId:true,personnelNumber:true,driverCardNumber:true,language:true}});
   const bySamsara=new Map(dbDrivers.filter(row=>row.samsaraId).map(row=>[String(row.samsaraId),row]));
   const byPersonnel=new Map(dbDrivers.filter(row=>row.personnelNumber).map(row=>[String(row.personnelNumber).toUpperCase(),row]));
-  const byCard=new Map(dbDrivers.filter(row=>row.driverCardNumber).map(row=>[String(row.driverCardNumber).toUpperCase(),row]));
+  const byCard=new Map(dbDrivers.flatMap(row=>{const card=normalizeCard(row.driverCardNumber);return card?[[card,row]]:[]}));
   const matchedDbIds=new Set();
 
   let driversCreated=0,driversUpdated=0,driverConflicts=0;
@@ -113,11 +114,11 @@ async function syncDrivers(){
   for(const samsaraDriver of samsaraDrivers){
     const samsaraId=String(samsaraDriver.id);
     const personnelNumber=personnelNumberFromExternalIds(samsaraDriver.externalIds);
-    const driverCardNumber=clean(samsaraDriver.tachographCardNumber)||null;
+    const driverCardNumber=normalizeCard(samsaraDriver.tachographCardNumber);
     const candidates=[
       bySamsara.get(samsaraId),
       personnelNumber?byPersonnel.get(personnelNumber.toUpperCase()):null,
-      driverCardNumber?byCard.get(driverCardNumber.toUpperCase()):null,
+      driverCardNumber?byCard.get(driverCardNumber):null,
     ].filter(Boolean);
     const candidateIds=[...new Set(candidates.map(row=>row.id))];
 
@@ -160,7 +161,20 @@ async function syncDrivers(){
     matchedDbIds.add(saved.id);
     bySamsara.set(samsaraId,saved);
     if(saved.personnelNumber)byPersonnel.set(saved.personnelNumber.toUpperCase(),saved);
-    if(saved.driverCardNumber)byCard.set(saved.driverCardNumber.toUpperCase(),saved);
+    if(saved.driverCardNumber){const savedCard=normalizeCard(saved.driverCardNumber);if(savedCard)byCard.set(savedCard,saved)}
+  }
+
+  const unlinkedViolations=await prisma.tachographViolation.findMany({
+    where:{driverId:null,driverCardNumber:{not:null}},
+    select:{id:true,driverCardNumber:true},
+  });
+  let violationsRelinked=0;
+  for(const violation of unlinkedViolations){
+    const card=normalizeCard(violation.driverCardNumber);
+    const driver=card?byCard.get(card):null;
+    if(!driver)continue;
+    await prisma.tachographViolation.update({where:{id:violation.id},data:{driverId:driver.id,driverCardNumber:card}});
+    violationsRelinked+=1;
   }
 
   const localWithoutSamsara=dbDrivers.filter(row=>!matchedDbIds.has(row.id)&&!row.samsaraId).length;
@@ -171,6 +185,7 @@ async function syncDrivers(){
     driversCreated,
     driversUpdated,
     driverConflicts,
+    violationsRelinked,
     localDriversWithoutSamsara:localWithoutSamsara,
     driverConflictDetails:conflicts.slice(0,100),
   };
@@ -191,6 +206,7 @@ async function main(){
     driversCreated:driverResult.driversCreated,
     driversUpdated:driverResult.driversUpdated,
     driverConflicts:driverResult.driverConflicts,
+    violationsRelinked:driverResult.violationsRelinked,
   };
   await setState('OK',`Vehicles: ${vehicleResult.matched}/${vehicleResult.samsaraVehicles} matched. Drivers: ${driverResult.samsaraDrivers} synced.`,counters);
   console.log(JSON.stringify({
