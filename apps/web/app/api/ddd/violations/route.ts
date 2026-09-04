@@ -8,9 +8,11 @@ export async function GET(request:NextRequest){
   const from=params.get('from');
   const to=params.get('to');
   const acknowledged=params.get('acknowledged');
+  const driverId=params.get('driverId')?.trim();
   const take=Math.min(500,Math.max(25,Number(params.get('take')||250)));
   const violations=await prisma.tachographViolation.findMany({
     where:{
+      ...(driverId?{driverId}:{}),
       ...(severity&&severity!=='ALL'?{severity}:{}),
       ...(from||to?{startsAt:{...(from?{gte:new Date(from)}:{}),...(to?{lte:new Date(to)}:{})}}:{}),
       ...(acknowledged==='true'?{acknowledgedAt:{not:null}}:acknowledged==='false'?{acknowledgedAt:null}:{}),
