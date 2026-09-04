@@ -135,6 +135,8 @@ model Vehicle {
   taxQuarterAmount      Decimal?         @db.Decimal(12,2)
   taxSumAmount          Decimal?         @db.Decimal(12,2)
   grossVehicleWeightKg  Int?
+  powerKw               Decimal?         @db.Decimal(8,2)
+  powerHp               Decimal?         @db.Decimal(8,2)
   documentsNotes        String?
   financingEnd          DateTime?
   financingEndRaw       String?
