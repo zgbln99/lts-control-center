@@ -106,6 +106,24 @@ export async function POST(request:NextRequest){
       };
     });
 
+    const unmatchedDriverCards=[...new Set(prepared.filter((row:any)=>!row.driverId&&row.driverCardNumber).map((row:any)=>row.driverCardNumber))].slice(0,100);
+    const unmatchedPlates=[...new Set(prepared.filter((row:any)=>!row.vehicleId&&row.plate).map((row:any)=>row.plate))].slice(0,100);
+
+    if(request.nextUrl.searchParams.get('dryRun')==='true'){
+      return NextResponse.json({
+        dryRun:true,
+        source,
+        externalId,
+        violations:prepared.length,
+        matchedDrivers,
+        unmatchedDrivers,
+        matchedVehicles,
+        unmatchedVehicles,
+        unmatchedDriverCards,
+        unmatchedPlates,
+      });
+    }
+
     const batch=await prisma.dddAnalysisBatch.create({data:{
       source,
       periodStart:parseDate(body.periodStart),
@@ -131,6 +149,8 @@ export async function POST(request:NextRequest){
         unmatchedDrivers,
         matchedVehicles,
         unmatchedVehicles,
+        unmatchedDriverCards,
+        unmatchedPlates,
       });
     }
 
@@ -154,6 +174,8 @@ export async function POST(request:NextRequest){
       unmatchedDrivers,
       matchedVehicles,
       unmatchedVehicles,
+      unmatchedDriverCards,
+      unmatchedPlates,
     },{status:201});
   }catch(error){
     return NextResponse.json({error:error instanceof Error?error.message:'DDD batch could not be imported'},{status:400});
