@@ -26,6 +26,7 @@ export type Vehicle = {
   samsaraOnline?: boolean | null;
   latitude?: number | null;
   longitude?: number | null;
+  photoUrl?: string | null;
   vin: string;
   inventory: string;
   insurance: string;
