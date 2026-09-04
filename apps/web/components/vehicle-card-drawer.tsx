@@ -1,17 +1,18 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { CalendarDays, Check, ExternalLink, FileText, Save, ShoppingCart, UploadCloud, X } from 'lucide-react';
+import { CalendarDays, Save, ShoppingCart, X } from 'lucide-react';
+import { VehicleDocumentsPanel, VehicleDocumentRow } from '@/components/vehicle-documents-panel';
+import { VehiclePhotoPanel } from '@/components/vehicle-photo-panel';
 
 type Deadline={id:string;type:string;dueDate:string;completedAt:string|null;optional:boolean;notes:string|null};
-type DocumentRow={id:string;filename:string;type:string|null;mimeType:string|null;sizeBytes:string|null;source:string};
 type VehicleDetailResponse={
   id:string;plate:string;category:string;manufacturer:string|null;model:string|null;displayName:string|null;firstRegistration:string|null;
   insuranceNumber:string|null;taxNumber:string|null;inventoryNumber:string|null;grossVehicleWeightKg:number|null;powerKw:string|null;powerHp:string|null;
   financingEnd:string|null;financingEndRaw:string|null;monthlyRate:string|null;rateRaw:string|null;
   cameraInstalled:boolean|null;wrapped:boolean|null;wrapType:string|null;notes:string|null;documentsNotes:string|null;
   vin:string|null;registeredAt:string|null;lifecycle:string;telemetry?:{odometerKm:number|null}|null;
-  deadlines:Deadline[];documents:DocumentRow[];
+  deadlines:Deadline[];documents:VehicleDocumentRow[];photo:{id:string;filename:string;createdAt:string}|null;
 };
 
 type Props={vehicleId?:string;plate:string;open:boolean;readOnly?:boolean;onClose:()=>void;onChanged?:()=>void|Promise<void>};
@@ -22,7 +23,7 @@ function triState(value:boolean|null){return value===true?'true':value===false?'
 function formatBytes(value:string|null){if(!value)return'—';const bytes=Number(value);if(!Number.isFinite(bytes))return'—';if(bytes<1024*1024)return`${Math.max(1,Math.round(bytes/1024))} KB`;return`${(bytes/1024/1024).toFixed(1)} MB`}
 
 export function VehicleCardDrawer({vehicleId,plate,open,readOnly=false,onClose,onChanged}:Props){
-  const [detail,setDetail]=useState<VehicleDetailResponse|null>(null);const [loading,setLoading]=useState(false);const [saving,setSaving]=useState(false);const [uploading,setUploading]=useState(false);const [message,setMessage]=useState('');
+  const [detail,setDetail]=useState<VehicleDetailResponse|null>(null);const [loading,setLoading]=useState(false);const [saving,setSaving]=useState(false);const [message,setMessage]=useState('');
   async function load(){if(!vehicleId)return;setLoading(true);setMessage('');try{const response=await fetch(`/api/vehicles/${vehicleId}`);if(!response.ok)throw new Error('Fahrzeugdaten konnten nicht geladen werden.');setDetail(await response.json())}catch(error){setMessage(error instanceof Error?error.message:'Fehler beim Laden.')}finally{setLoading(false)}}
   useEffect(()=>{if(open)void load()},[open,vehicleId]);
   const current=useMemo(()=>({TUV:detail?currentDeadline(detail.deadlines,'TUV'):null,SP:detail?currentDeadline(detail.deadlines,'SP'):null,TACHO:detail?currentDeadline(detail.deadlines,'TACHO'):null,UVV:detail?currentDeadline(detail.deadlines,'UVV'):null}),[detail]);
@@ -35,8 +36,7 @@ export function VehicleCardDrawer({vehicleId,plate,open,readOnly=false,onClose,o
     setMessage('Änderungen gespeichert.');await load();await onChanged?.();
   }catch(error){setMessage(error instanceof Error?error.message:'Fehler beim Speichern.')}finally{setSaving(false)}}
 
-  async function uploadDocument(event:FormEvent<HTMLFormElement>){event.preventDefault();if(readOnly||!vehicleId)return;const form=new FormData(event.currentTarget);const file=form.get('file');if(!(file instanceof File)||!file.size)return;setUploading(true);setMessage('');try{const response=await fetch(`/api/vehicles/${vehicleId}/documents`,{method:'POST',body:form});const payload=await response.json().catch(()=>({}));if(!response.ok)throw new Error(payload.error||'Dokument konnte nicht hochgeladen werden.');event.currentTarget.reset();setMessage('Dokument in MEGA S4 gespeichert.');await load();await onChanged?.()}catch(error){setMessage(error instanceof Error?error.message:'Fehler beim Upload.')}finally{setUploading(false)}}
-  async function openDocument(id:string){try{const response=await fetch(`/api/documents/${id}/open`);if(!response.ok)throw new Error('Dokument konnte nicht geöffnet werden.');const payload=await response.json();window.open(payload.url,'_blank','noopener,noreferrer')}catch(error){setMessage(error instanceof Error?error.message:'Dokument konnte nicht geöffnet werden.')}}
+  async function reloadPanels(){await load();await onChanged?.()}
   async function archiveVehicle(event:FormEvent<HTMLFormElement>){event.preventDefault();if(readOnly||!vehicleId)return;const form=new FormData(event.currentTarget);const lifecycle=String(form.get('lifecycle')??'SOLD');if(!window.confirm(`${plate} wirklich aus dem aktiven Fuhrpark entfernen?`))return;setSaving(true);setMessage('');try{const response=await fetch(`/api/vehicles/${vehicleId}/archive`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lifecycle,soldAt:form.get('soldAt'),soldTo:form.get('soldTo'),soldPrice:form.get('soldPrice'),soldMileageKm:form.get('soldMileageKm'),lifecycleNote:form.get('lifecycleNote')})});if(!response.ok)throw new Error('Fahrzeug konnte nicht archiviert werden.');await onChanged?.();onClose()}catch(error){setMessage(error instanceof Error?error.message:'Fehler beim Archivieren.')}finally{setSaving(false)}}
 
   return <div className="drawerBackdrop" onMouseDown={event=>{if(event.target===event.currentTarget)onClose()}}><aside className="vehicleDrawer" aria-label={`Fahrzeug ${plate}`}>
@@ -53,10 +53,8 @@ export function VehicleCardDrawer({vehicleId,plate,open,readOnly=false,onClose,o
         <section className="drawerSection"><div className="drawerSectionHead"><div><h3>Finanzierung & Notizen</h3><p>Ergänzungen zur ursprünglichen Kfz-Liste</p></div></div><div className="drawerFormGrid"><label><span>Vertragsende</span><input type="date" name="financingEnd" defaultValue={dateInput(detail.financingEnd)}/></label><label><span>Monatliche Rate (€)</span><input inputMode="decimal" name="monthlyRate" defaultValue={detail.monthlyRate??''}/></label><label className="wide"><span>Besonderheiten</span><textarea name="notes" rows={3} defaultValue={detail.notes??''}/></label><label className="wide"><span>Unterlagen / Alt-Notiz</span><textarea name="documentsNotes" rows={3} defaultValue={detail.documentsNotes??''}/></label></div></section>
       </fieldset>{!readOnly&&<div className="drawerStickySave"><span>{message}</span><button className="greenBtn" disabled={saving}><Save size={14}/>{saving?'Speichern ...':'Änderungen speichern'}</button></div>}</form>
 
-      <section className="drawerSection"><div className="drawerSectionHead"><div><h3>Dokumente</h3><p>{detail.documents.length} Dateien in der Fahrzeugkartothek</p></div><FileText size={17}/></div>
-        {!readOnly&&<form className="documentUpload" onSubmit={uploadDocument}><select name="type" defaultValue="SONSTIGE"><option value="FAHRZEUGSCHEIN">Fahrzeugschein</option><option value="TUV">TÜV</option><option value="SP">SP</option><option value="TACHO">Tachoprüfung</option><option value="VERSICHERUNG">Versicherung</option><option value="FINANZIERUNG">Finanzierung</option><option value="RECHNUNG">Rechnung</option><option value="FOTO">Foto</option><option value="SONSTIGE">Sonstiges</option></select><input name="file" type="file" required accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"/><button type="submit" disabled={uploading}><UploadCloud size={14}/>{uploading?'Upload ...':'Hochladen'}</button></form>}
-        <div className="drawerDocuments">{detail.documents.length?detail.documents.map(document=><div className="drawerDocument" key={document.id}><span className="documentIcon"><FileText size={15}/></span><div><strong>{document.filename}</strong><small>{document.type||'Dokument'} · {formatBytes(document.sizeBytes)}</small></div><button type="button" onClick={()=>void openDocument(document.id)} disabled={document.source!=='MEGA_S4'}>{document.source==='MEGA_S4'?<ExternalLink size={14}/>:<Check size={14}/>}</button></div>):<p className="drawerEmpty">Noch keine Dokumente synchronisiert.</p>}</div>
-      </section>
+      <VehiclePhotoPanel vehicleId={detail.id} plate={detail.plate} photo={detail.photo} readOnly={readOnly} onReload={reloadPanels}/>
+      <VehicleDocumentsPanel vehicleId={detail.id} documents={detail.documents} readOnly={readOnly} onReload={reloadPanels}/>
 
       {!readOnly&&<details className="archiveDetails"><summary><ShoppingCart size={16}/> Verkauf / Archiv</summary><form className="archiveDrawerForm" onSubmit={archiveVehicle}><div className="drawerFormGrid"><label><span>Vorgang</span><select name="lifecycle" defaultValue="SOLD"><option value="SOLD">Verkauft</option><option value="ARCHIVED">Abgemeldet / Archiv</option><option value="RETURNED">Leasing zurückgegeben</option><option value="SCRAPPED">Verschrottet</option></select></label><label><span>Datum</span><input name="soldAt" type="date" defaultValue={new Date().toISOString().slice(0,10)}/></label><label className="wide"><span>Käufer / Empfänger</span><input name="soldTo"/></label><label><span>Preis (€)</span><input name="soldPrice" inputMode="decimal"/></label><label><span>Kilometer</span><input name="soldMileageKm" inputMode="numeric" defaultValue={detail.telemetry?.odometerKm??''}/></label><label className="wide"><span>Notiz</span><textarea name="lifecycleNote" rows={2}/></label></div><button className="archiveDanger" type="submit" disabled={saving}>Aus aktivem Fuhrpark entfernen</button></form></details>}
       {readOnly&&message&&<div className="pageMessage">{message}</div>}
