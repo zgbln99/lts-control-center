@@ -9,21 +9,52 @@ if [ ! -f .env ]; then
   exit 1
 fi
 
-set -a
-. ./.env
-set +a
+env_value() {
+  key="$1"
+  value="$(grep -E "^\${key}=" .env | tail -n 1 | cut -d= -f2- | tr -d '\r' || true)"
+  case "$value" in
+    \"*\") value="$(printf '%s' "$value" | sed 's/^"//;s/"$//')" ;;
+    \'*\') value="$(printf '%s' "$value" | sed "s/^'//;s/'$//")" ;;
+  esac
+  printf '%s' "$value"
+}
 
-: "${APP_PORT:?APP_PORT must be set in .env}"
-: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}"
-: "${DATABASE_URL:?DATABASE_URL must be set in .env}"
-: "${AUTH_SECRET:?AUTH_SECRET must be set in .env}"
+APP_PORT="$(env_value APP_PORT)"
+APP_BIND_IP="$(env_value APP_BIND_IP)"
+POSTGRES_PASSWORD="$(env_value POSTGRES_PASSWORD)"
+DATABASE_URL="$(env_value DATABASE_URL)"
+AUTH_SECRET="$(env_value AUTH_SECRET)"
 
-if [ "${#AUTH_SECRET}" -lt 32 ]; then
+APP_BIND_IP="\${APP_BIND_IP:-127.0.0.1}"
+
+if [ -z "$APP_PORT" ]; then
+  echo "ERROR: APP_PORT must be set in .env." >&2
+  exit 1
+fi
+
+case "$APP_PORT" in
+  *[!0-9]*|"")
+    echo "ERROR: APP_PORT must be a numeric TCP port." >&2
+    exit 1
+    ;;
+esac
+
+if [ "$APP_PORT" -lt 1024 ] || [ "$APP_PORT" -gt 65535 ]; then
+  echo "ERROR: APP_PORT must be between 1024 and 65535." >&2
+  exit 1
+fi
+
+if [ -z "$DATABASE_URL" ]; then
+  echo "ERROR: DATABASE_URL must be set in .env." >&2
+  exit 1
+fi
+
+if [ "\${#AUTH_SECRET}" -lt 32 ]; then
   echo "ERROR: AUTH_SECRET must contain at least 32 characters." >&2
   exit 1
 fi
 
-case "${POSTGRES_PASSWORD}" in
+case "$POSTGRES_PASSWORD" in
   CHANGE_THIS*|change-me|"")
     echo "ERROR: Replace the placeholder POSTGRES_PASSWORD." >&2
     exit 1
@@ -40,22 +71,25 @@ if ! docker compose version >/dev/null 2>&1; then
   exit 1
 fi
 
-BIND_IP="${APP_BIND_IP:-127.0.0.1}"
+if ! docker compose config >/dev/null; then
+  echo "ERROR: docker compose config failed. Check .env and docker-compose.yml." >&2
+  exit 1
+fi
 
-if command -v ss >/dev/null 2>&1 && ss -ltnH | awk '{print $4}' | grep -Eq "(^|:)${APP_PORT}$"; then
-  echo "ERROR: TCP port ${APP_PORT} is already in use on this VPS." >&2
-  ss -ltnp 2>/dev/null | grep -E ":${APP_PORT}[[:space:]]" || true
+if command -v ss >/dev/null 2>&1 && ss -ltnH | awk '{print $4}' | grep -Eq "(^|:)\${APP_PORT}$"; then
+  echo "ERROR: TCP port \${APP_PORT} is already in use on this VPS." >&2
+  ss -ltnp 2>/dev/null | grep -E ":\${APP_PORT}[[:space:]]" || true
   exit 1
 fi
 
 echo "OK: Docker and Compose are available."
-echo "OK: APP_PORT=${APP_PORT} is free."
-echo "OK: web will bind to ${BIND_IP}:${APP_PORT}, not directly to public 80/443."
+echo "OK: APP_PORT=\${APP_PORT} is free."
+echo "OK: web will bind to \${APP_BIND_IP}:\${APP_PORT}, not directly to public 80/443."
 echo
 echo "Existing Docker containers:"
-docker ps --format 'table {{.Names}}	{{.Ports}}	{{.Status}}' || true
+docker ps --format 'table {{.Names}}\t{{.Ports}}\t{{.Status}}' || true
 echo
-echo "Compose plan:"
+echo "Control Center Compose services:"
 docker compose config --services
 echo
 echo "Preflight passed."

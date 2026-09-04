@@ -63,14 +63,23 @@ Jeżeli hasło PostgreSQL zawiera znaki specjalne, hasło w `DATABASE_URL` musi 
 ## 4. Preflight
 
 ```bash
-chmod +x scripts/preflight-vps.sh
+chmod +x scripts/preflight-vps.sh scripts/deploy-vps.sh
 ./scripts/preflight-vps.sh
 ```
 
 ## 5. Start
 
+Najbezpieczniej użyć helpera, który uruchamia wyłącznie projekt `lts-control-center` i czeka na healthcheck:
+
 ```bash
-docker compose up -d --build
+./scripts/deploy-vps.sh
+```
+
+Ręczny odpowiednik:
+
+```bash
+docker compose build --pull web
+docker compose up -d
 docker compose ps
 curl -fsS http://127.0.0.1:$APP_PORT/api/health
 ```
