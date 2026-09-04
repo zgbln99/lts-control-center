@@ -5,6 +5,7 @@ const PUBLIC_PATHS=['/login','/api/auth/login','/api/health'];
 const WRITE_METHODS=new Set(['POST','PUT','PATCH','DELETE']);
 type Role='ADMIN'|'FUHRPARK'|'PERSONAL'|'DISPOSITION'|'READ_ONLY';
 function hasRole(role:string,allowed:Role[]){return allowed.includes(role as Role)}
+function hasDddMachineToken(request:NextRequest){const expected=process.env.DDD_ANALYZER_API_TOKEN?.trim();if(!expected)return false;const auth=request.headers.get('authorization')?.trim()??'';const bearer=auth.toLowerCase().startsWith('bearer ')?auth.slice(7).trim():'';const apiKey=request.headers.get('x-api-key')?.trim()??'';const supplied=bearer||apiKey;return Boolean(supplied)&&supplied===expected}
 
 function requiredPageRoles(pathname:string):Role[]|null{
   if(pathname.startsWith('/settings')) return ['ADMIN'];
@@ -33,6 +34,7 @@ function requiredApiRoles(pathname:string,method:string):Role[]|null{
 
 export async function middleware(request:NextRequest){
   const {pathname}=request.nextUrl;
+  if(pathname==='/api/ddd/batches'&&request.method==='POST'&&hasDddMachineToken(request)){const headers=new Headers(request.headers);headers.set('x-lts-machine','ddd-analyzer');return NextResponse.next({request:{headers}})}
   if(PUBLIC_PATHS.includes(pathname)||pathname.startsWith('/_next/')||pathname==='/favicon.ico') return NextResponse.next();
   const token=request.cookies.get(SESSION_COOKIE)?.value;
   if(!token){if(pathname.startsWith('/api/'))return NextResponse.json({error:'Unauthorized'},{status:401});const login=new URL('/login',request.url);login.searchParams.set('next',`${pathname}${request.nextUrl.search}`);return NextResponse.redirect(login)}
