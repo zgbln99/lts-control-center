@@ -60,3 +60,25 @@
 .vehicleDetailInline .vehiclePhoto button,.vehicleDetailInline .samsaraBox button,.vehicleDetailInline .docsBox button{height:36px;font-size:10px}
 @media(max-width:1200px){.vehicleDetail.vehicleDetailInline{grid-template-columns:190px 1fr}.vehicleDetailInline .detailCards{grid-column:1/-1}}
 @media(max-width:760px){.vehicleDetail.vehicleDetailInline{grid-template-columns:1fr;padding:18px}.vehicleDetailInline .vehiclePhoto{max-width:320px}.vehicleDetailInline .detailCards{grid-template-columns:repeat(2,1fr)}}
+
+
+/* Samsara live map ---------------------------------------------------------- */
+.samsaraRealMap{position:relative;background:#e7edf2!important;border:1px solid #dfe5eb;isolation:isolate;overflow:hidden}
+.samsaraRealMap:before,.samsaraRealMap:after{display:none!important}
+.samsaraTileLayer,.samsaraMarkerLayer{position:absolute;inset:0}
+.samsaraTile{position:absolute;width:256px;height:256px;background-size:256px 256px;background-repeat:no-repeat}
+.samsaraMarker{position:absolute;z-index:4;width:18px;height:18px;transform:translate(-50%,-50%);padding:0;border:2px solid #fff;border-radius:50%;background:#9aa5b5;box-shadow:0 2px 6px rgba(18,40,65,.28);cursor:pointer}
+.samsaraMarker.isOnline{background:#18aa61}
+.samsaraMarker.isOnline>span{position:absolute;inset:-5px;border:2px solid rgba(24,170,97,.24);border-radius:50%}
+.samsaraMarker em{display:none;position:absolute;left:50%;bottom:23px;transform:translateX(-50%);min-width:145px;max-width:190px;padding:8px 9px;border-radius:8px;background:#0d2239;color:#fff;text-align:left;font-style:normal;box-shadow:0 8px 24px rgba(13,34,57,.22);pointer-events:none}
+.samsaraMarker:hover,.samsaraMarker:focus{z-index:8}
+.samsaraMarker:hover em,.samsaraMarker:focus em{display:block}
+.samsaraMarker em strong,.samsaraMarker em small{display:block}
+.samsaraMarker em strong{font-size:10px}
+.samsaraMarker em small{font-size:8px;line-height:1.35;color:#c5d1dc;margin-top:3px;white-space:normal}
+.samsaraMapMeta{position:absolute;left:7px;top:7px;z-index:6;display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.92);border:1px solid rgba(220,226,233,.9);border-radius:6px;padding:4px 6px;box-shadow:0 2px 8px rgba(20,37,58,.08)}
+.samsaraMapMeta strong{font-size:9px;color:#138e50}
+.samsaraMapMeta span{font-size:7px;color:#687589}
+.osmAttribution{position:absolute;right:4px;bottom:3px;z-index:6;background:rgba(255,255,255,.82);border-radius:3px;padding:1px 3px;color:#58697a!important;font-size:6px!important;text-decoration:none}
+.samsaraMapEmpty{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:7px;color:#718095;text-align:center;padding:16px}
+.samsaraMapEmpty span{font-size:9px;line-height:1.4}
