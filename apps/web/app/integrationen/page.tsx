@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Sidebar } from '@/components/sidebar';
 import { Topbar } from '@/components/topbar';
+import { MegaMappingPanel } from '@/components/mega-mapping-panel';
 import { Bot, Boxes, CalendarRange, CheckCircle2, Database, ExternalLink, FolderOpen, MapPin, MessageCircle, RefreshCw, ShieldAlert, TriangleAlert } from 'lucide-react';
 
 type StatusPayload={generatedAt:string;integrations:{
@@ -31,6 +32,7 @@ export default function IntegrationenPage(){
       <article className="integrationCard" id="ddd"><div className="integrationIcon red"><ShieldAlert size={20}/></div><div className="integrationTitle"><div><h3>DDD Analyzer</h3><p>Verstoßauswertung</p></div><State ok={Boolean(i?.ddd.configured)}/></div><div className="integrationStats"><div><span>Import-Batches</span><strong>{i?.ddd.batches??'—'}</strong></div><div><span>Verstöße</span><strong>{i?.ddd.violations??'—'}</strong></div></div><footer><span>Letzter Import</span><strong>{formatDate(i?.ddd.lastImportAt??null)}</strong></footer><Link className="integrationLink" href="/fahrer/verstoesse">Verstöße öffnen <ExternalLink size={13}/></Link></article>
       <article className="integrationCard" id="urlaub"><div className="integrationIcon red"><CalendarRange size={20}/></div><div className="integrationTitle"><div><h3>Urlaubsportal</h3><p>Osobna aplikacja</p></div><State ok={Boolean(i?.vacation.configured)}/></div><div className="integrationDescription">Portal pozostaje niezależny. Control Center może pokazywać tylko potrzebne dane i prowadzić do pełnej aplikacji.</div>{i?.vacation.url&&<a className="integrationLink" href={i.vacation.url} target="_blank" rel="noreferrer">Portal öffnen <ExternalLink size={13}/></a>}</article>
     </section>
+    <MegaMappingPanel/>
     <section className="integrationArchitecture"><Database size={18}/><div><strong>Zasada integracji</strong><p>PostgreSQL przechowuje dane Control Center. MEGA S4 przechowuje pliki. Samsara dostarcza live data. DDD, Chatwoot, n8n, Meta i Urlaubsportal są podłączane przez API/webhooki zamiast kopiowania całej ich logiki.</p></div></section>
   </div></main></div>
 }
