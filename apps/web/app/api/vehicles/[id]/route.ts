@@ -11,8 +11,14 @@ function optionalBoolean(value:unknown){if(value===null||value===undefined||valu
 function category(value:unknown){const parsed=String(value??'').trim().toUpperCase();return VEHICLE_CATEGORIES.includes(parsed as typeof VEHICLE_CATEGORIES[number])?parsed:null}
 
 export async function GET(_:NextRequest,{params}:{params:Promise<{id:string}>}) {
-  const {id}=await params;const vehicle=await prisma.vehicle.findUnique({where:{id},include:{telemetry:true,deadlines:{orderBy:{dueDate:'desc'}},documents:{orderBy:{filename:'asc'}},syncMappings:true,hookLoadPeriods:{orderBy:{startsAt:'desc'}},workshopOrders:{orderBy:{createdAt:'desc'},take:20}}});if(!vehicle)return NextResponse.json({error:'Vehicle not found'},{status:404});
-  return NextResponse.json({...vehicle,taxMonthAmount:vehicle.taxMonthAmount?.toString()??null,taxQuarterAmount:vehicle.taxQuarterAmount?.toString()??null,taxSumAmount:vehicle.taxSumAmount?.toString()??null,monthlyRate:vehicle.monthlyRate?.toString()??null,powerKw:vehicle.powerKw?.toString()??null,powerHp:vehicle.powerHp?.toString()??null,soldPrice:vehicle.soldPrice?.toString()??null,documents:vehicle.documents.map(document=>({...document,sizeBytes:document.sizeBytes?.toString()??null})),workshopOrders:vehicle.workshopOrders.map(order=>({...order,cost:order.cost?.toString()??null}))});
+  const {id}=await params;
+  const vehicle=await prisma.vehicle.findUnique({where:{id},include:{telemetry:true,deadlines:{orderBy:{dueDate:'desc'}},documents:{orderBy:{createdAt:'desc'}},syncMappings:true,hookLoadPeriods:{orderBy:{startsAt:'desc'}},workshopOrders:{orderBy:{createdAt:'desc'},take:20}}});
+  if(!vehicle)return NextResponse.json({error:'Vehicle not found'},{status:404});
+  const photo=vehicle.documents.find(document=>document.type==='FAHRZEUGFOTO')??null;
+  const documents=vehicle.documents
+    .filter(document=>document.type!=='FAHRZEUGFOTO')
+    .sort((a,b)=>Number(b.type==='FAHRZEUGSCHEIN')-Number(a.type==='FAHRZEUGSCHEIN')||a.filename.localeCompare(b.filename,'de'));
+  return NextResponse.json({...vehicle,taxMonthAmount:vehicle.taxMonthAmount?.toString()??null,taxQuarterAmount:vehicle.taxQuarterAmount?.toString()??null,taxSumAmount:vehicle.taxSumAmount?.toString()??null,monthlyRate:vehicle.monthlyRate?.toString()??null,powerKw:vehicle.powerKw?.toString()??null,powerHp:vehicle.powerHp?.toString()??null,soldPrice:vehicle.soldPrice?.toString()??null,photo:photo?{id:photo.id,filename:photo.filename,createdAt:photo.createdAt.toISOString()}:null,documents:documents.map(document=>({...document,sizeBytes:document.sizeBytes?.toString()??null})),workshopOrders:vehicle.workshopOrders.map(order=>({...order,cost:order.cost?.toString()??null}))});
 }
 
 export async function PATCH(request:NextRequest,{params}:{params:Promise<{id:string}>}) {
