@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle2, History, RefreshCw, Search, TriangleAlert, UserX } from 'lucide-react';
 import { Sidebar } from '@/components/sidebar';
@@ -12,7 +12,7 @@ type View='ALL'|'OPEN'|'ACK'|'UNASSIGNED';
 const dateTime=new Intl.DateTimeFormat('de-DE',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
 const dateOnly=new Intl.DateTimeFormat('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
 
-export default function VerstoessePage(){
+function VerstoesseContent(){
  const searchParams=useSearchParams();const driverId=searchParams.get('driverId');
  const [rows,setRows]=useState<Violation[]>([]);
  const [batches,setBatches]=useState<Batch[]>([]);
@@ -102,4 +102,8 @@ export default function VerstoessePage(){
    </div>
   </section>
  </div></main></div>
+}
+
+export default function VerstoessePage(){
+ return <Suspense fallback={<div className="appShell"><Sidebar/><main className="main"><Topbar title="Verstoßauswertung" subtitle="DDD wird geladen ..."/><div className="content"><div className="tableCard driverProfileLoading">Verstoßauswertung wird geladen ...</div></div></main></div>}><VerstoesseContent/></Suspense>;
 }
