@@ -12,6 +12,7 @@
     "import:kfz": "node scripts/import-kfz-xlsx.mjs",
     "import:kfz:db": "node scripts/import-kfz-to-db.mjs",
     "bootstrap:kfz": "node scripts/bootstrap-kfz.mjs",
+    "import:legacy-vehicles": "node scripts/import-legacy-vehicles-sql.mjs",
     "bootstrap:admin": "node scripts/bootstrap-admin.mjs",
     "sync:mega-s4": "node scripts/sync-mega-s4.mjs",
     "sync:samsara": "node scripts/sync-samsara.mjs"
