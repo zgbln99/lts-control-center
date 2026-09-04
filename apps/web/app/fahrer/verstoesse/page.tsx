@@ -6,7 +6,7 @@ import { CheckCircle2, RefreshCw, Search, TriangleAlert } from 'lucide-react';
 import { Sidebar } from '@/components/sidebar';
 import { Topbar } from '@/components/topbar';
 
-type Violation={id:string;driverCardNumber:string|null;plate:string|null;type:string;code:string|null;legalReference:string|null;severity:string|null;startsAt:string;endsAt:string|null;durationMinutes:number|null;description:string|null;acknowledgedAt:string|null;driver:{firstName:string;lastName:string;personnelNumber:string|null}|null;vehicle:{plate:string;displayName:string|null}|null};
+type Violation={id:string;driverCardNumber:string|null;plate:string|null;type:string;code:string|null;legalReference:string|null;severity:string|null;startsAt:string;endsAt:string|null;durationMinutes:number|null;description:string|null;acknowledgedAt:string|null;driver:{id:string;firstName:string;lastName:string;personnelNumber:string|null}|null;vehicle:{plate:string;displayName:string|null}|null};
 const dateTime=new Intl.DateTimeFormat('de-DE',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
 
 export default function VerstoessePage(){
