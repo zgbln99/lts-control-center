@@ -154,7 +154,7 @@ async function main() {
     for (const alias of vehicle.plateAliases) byPlate.set(alias.toUpperCase(), vehicle);
   }
 
-  const counters = { sourceRows:rows.length, matched:0, unmatched:0, conflicts:0, powerUpdated:0, weightFilled:0, categoryFilled:0, nameFilled:0 };
+  const counters = { sourceRows:rows.length, matched:0, unmatched:0, conflicts:0, powerUpdated:0, weightFilled:0, categoryFilled:0, nameFilled:0, aliasesAdded:0 };
   const deadlines = {
     TUV:{created:0,updated:0,unchanged:0,keptNewerExisting:0},
     SP:{created:0,updated:0,unchanged:0,keptNewerExisting:0},
@@ -181,6 +181,14 @@ async function main() {
 
     counters.matched += 1;
     const data = {};
+    const legacyPlateCandidates = plateCandidates(row.license_plate);
+    const newAliases = legacyPlateCandidates.filter(candidate => candidate !== vehicle.plate && !vehicle.plateAliases.includes(candidate));
+    if (newAliases.length) {
+      data.plateAliases = [...new Set([...vehicle.plateAliases, ...newAliases])];
+      counters.aliasesAdded += newAliases.length;
+      vehicle.plateAliases = data.plateAliases;
+      for (const alias of newAliases) byPlate.set(alias.toUpperCase(), vehicle);
+    }
     const powerKw = decimal(row.power_kw), powerHp = decimal(row.power_hp);
     const weight = decimal(row.weight);
 
