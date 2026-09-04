@@ -2,9 +2,11 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, IdCard, Mail, Phone, RefreshCw, ShieldCheck, UserRound } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, IdCard, Mail, Phone, RefreshCw, ShieldAlert, ShieldCheck, TriangleAlert, UserRound } from 'lucide-react';
 import { Sidebar } from '@/components/sidebar';
 import { Topbar } from '@/components/topbar';
+
+type Violation={id:string;type:string;code:string|null;severity:string|null;startsAt:string;durationMinutes:number|null;description:string|null;acknowledgedAt:string|null;plate:string|null};
 
 type DriverDetail={
   id:string;
@@ -35,14 +37,20 @@ export function DriverProfile({driverId}:{driverId:string}){
   const [driver,setDriver]=useState<DriverDetail|null>(null);
   const [loading,setLoading]=useState(true);
   const [message,setMessage]=useState('');
+  const [violations,setViolations]=useState<Violation[]>([]);
 
   async function load(){
     setLoading(true);setMessage('');
     try{
-      const response=await fetch(`/api/drivers/${driverId}`,{cache:'no-store'});
-      const payload=await response.json();
-      if(!response.ok)throw new Error(payload.error||'Fahrer konnte nicht geladen werden.');
-      setDriver(payload);
+      const [driverResponse,violationsResponse]=await Promise.all([
+        fetch(`/api/drivers/${driverId}`,{cache:'no-store'}),
+        fetch(`/api/ddd/violations?driverId=${encodeURIComponent(driverId)}&take=50`,{cache:'no-store'}),
+      ]);
+      const driverPayload=await driverResponse.json();
+      const violationsPayload=await violationsResponse.json().catch(()=>({}));
+      if(!driverResponse.ok)throw new Error(driverPayload.error||'Fahrer konnte nicht geladen werden.');
+      setDriver(driverPayload);
+      setViolations(violationsResponse.ok?(violationsPayload.violations??[]):[]);
     }catch(error){setMessage(error instanceof Error?error.message:'Fehler beim Laden.')}
     finally{setLoading(false)}
   }
@@ -53,6 +61,8 @@ export function DriverProfile({driverId}:{driverId:string}){
   if(!driver)return <div className="appShell"><Sidebar/><main className="main"><Topbar title="Fahrerakte" subtitle="Samsara"/><div className="content"><div className="pageMessage">{message||'Fahrer nicht gefunden.'}</div></div></main></div>;
 
   const name=driver.samsaraName||[driver.firstName,driver.lastName].filter(Boolean).join(' ')||'Fahrer';
+  const openViolations=violations.filter(row=>!row.acknowledgedAt);
+  const criticalViolations=openViolations.filter(row=>String(row.severity??'').toUpperCase()==='CRITICAL');
 
   return <div className="appShell"><Sidebar/><main className="main"><Topbar title={name} subtitle="Fahrerakte · Samsara"/><div className="content driverProfileContent">
     <div className="driverProfileTop">
@@ -100,5 +110,18 @@ export function DriverProfile({driverId}:{driverId:string}){
         <p className="driverSourceNote">Control Center speichert hier nur eine lokale Kopie für Suche, DDD-Verknüpfung und Auswertungen. Es gibt keine feste Fahrer-Fahrzeug-Zuordnung.</p>
       </section>
     </div>
+
+    <section className="tableCard driverViolationsCard">
+      <div className="modulePageHead"><div><h2>Verstöße</h2><p>DDD-Verstöße, automatisch über die Tachographenkarte zugeordnet</p></div><Link href={`/fahrer/verstoesse?driverId=${driver.id}`} className="filterBtn"><ShieldAlert size={14}/>Alle Verstöße</Link></div>
+      <div className="driverViolationKpis">
+        <div><TriangleAlert size={16}/><span>Offen</span><strong>{openViolations.length}</strong></div>
+        <div><ShieldAlert size={16}/><span>Kritisch</span><strong>{criticalViolations.length}</strong></div>
+        <div><CheckCircle2 size={16}/><span>Bestätigt</span><strong>{violations.length-openViolations.length}</strong></div>
+      </div>
+      <div className="driverViolationList">
+        {violations.slice(0,8).map(row=><div className="driverViolationRow" key={row.id}><div><strong>{row.type}</strong><small>{row.code??row.description??'—'}</small></div><span>{new Date(row.startsAt).toLocaleString('de-DE')}</span><span>{row.plate??'—'}</span><span className={`entityStatus status-${String(row.severity??'unknown').toLowerCase()}`}>{row.severity??'—'}</span><span className={`entityStatus ${row.acknowledgedAt?'status-done':'status-open'}`}>{row.acknowledgedAt?'Bestätigt':'Offen'}</span></div>)}
+        {!violations.length&&<div className="drawerEmpty">Noch keine Verstöße für diesen Fahrer.</div>}
+      </div>
+    </section>
   </div></main></div>;
 }
