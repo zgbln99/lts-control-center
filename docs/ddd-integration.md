@@ -83,6 +83,14 @@ Successful imports return operational counters including:
 
 Repeated batches return `duplicateBatch: true`.
 
+Before the first production import, the same payload can be validated without writing data:
+
+```
+POST /api/ddd/batches?dryRun=true
+```
+
+The response includes `unmatchedDriverCards` and `unmatchedPlates` so source-side mapping problems can be fixed before import.
+
 ## Local VPS topology
 
 The existing DDD reader can stay as an independent service. Control Center reaches host-published local services through `host.docker.internal`; no additional PostgreSQL or public Control Center endpoint is required for the reader.
