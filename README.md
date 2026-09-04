@@ -101,25 +101,24 @@ Importer Kfz-Liste: [`docs/kfz-import.md`](docs/kfz-import.md)
 
 ## Uruchomienie lokalne / VPS
 
+Na VPS z innymi aplikacjami używamy izolowanego deploymentu: aplikacja binduje się wyłącznie do `127.0.0.1:APP_PORT`, PostgreSQL nie jest publikowany, a publiczny ruch obsługuje istniejący nginx.
+
+Pełna instrukcja: [`docs/deployment-vps-nginx.md`](docs/deployment-vps-nginx.md)
+
 ```bash
 git clone https://github.com/zgbln99/lts-control-center.git
 cd lts-control-center
 cp .env.example .env
 nano .env
-
+chmod +x scripts/preflight-vps.sh
+./scripts/preflight-vps.sh
 docker compose up -d --build
 ```
 
-Panel:
+Healthcheck z samego VPS:
 
-```text
-http://SERVER:3000/dashboard
-```
-
-Healthcheck:
-
-```text
-http://SERVER:3000/api/health
+```bash
+curl -fsS http://127.0.0.1:$APP_PORT/api/health
 ```
 
 ## Pierwszy administrator

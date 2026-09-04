@@ -1,3 +1,5 @@
+name: lts-control-center
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -8,6 +10,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lts} -d ${POSTGRES_DB:-lts_control}"]
       interval: 5s
@@ -28,7 +32,9 @@ services:
       DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
       NODE_ENV: production
     ports:
-      - "${APP_PORT:-3000}:3000"
+      - "${APP_BIND_IP:-127.0.0.1}:${APP_PORT:?Set APP_PORT in .env}:3000"
+    networks:
+      - internal
     depends_on:
       postgres:
         condition: service_healthy
@@ -38,6 +44,10 @@ services:
       timeout: 8s
       start_period: 35s
       retries: 3
+
+networks:
+  internal:
+    driver: bridge
 
 volumes:
   postgres_data:
