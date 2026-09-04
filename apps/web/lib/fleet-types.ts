@@ -23,6 +23,9 @@ export type Vehicle = {
   camera: boolean | null;
   wrapped: boolean | null;
   samsara: boolean;
+  samsaraOnline?: boolean | null;
+  latitude?: number | null;
+  longitude?: number | null;
   vin: string;
   inventory: string;
   insurance: string;
