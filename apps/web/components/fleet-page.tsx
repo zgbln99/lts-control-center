@@ -13,7 +13,7 @@ type ApiVehicle = {
   id: string; plate: string; category:VehicleCategory; vehicle: string; firstRegistration: string | null; vin: string | null;
   insuranceNumber: string | null; taxNumber: string | null; inventoryNumber: string | null; financingEnd: string | null; grossVehicleWeightKg: number | null; powerKw: string | null; powerHp: string | null;
   financingEndRaw: string | null; monthlyRate: string | null; documentsNotes: string | null; cameraInstalled: boolean | null;
-  wrapped: boolean | null; samsara: { connected: boolean; online: boolean | null; location: string | null; odometerKm: number | null; latitude: number | null; longitude: number | null; lastSeenAt: string | null };
+  wrapped: boolean | null; photoId: string | null; samsara: { connected: boolean; online: boolean | null; location: string | null; odometerKm: number | null; latitude: number | null; longitude: number | null; lastSeenAt: string | null };
   deadlines: { tuv: ApiDeadline; sp: ApiDeadline; tacho: ApiDeadline; uvv: ApiDeadline }; documentCount: number;
 };
 type LoadedVehicle = Vehicle & { samsaraOnline?: boolean | null; latitude?: number | null; longitude?: number | null; upcoming?: { type: 'TÜV' | 'SP' | 'Tacho' | 'UVV'; dueDate: string; state: DeadlineState }[] };
@@ -63,7 +63,7 @@ function mapApiVehicle(row: ApiVehicle): LoadedVehicle {
     uvv:formatMonth(row.deadlines.uvv?.dueDate),uvvState:row.deadlines.uvv?.state??'none',
     power:row.powerKw||row.powerHp?[row.powerKw?numberFormatter.format(Number(row.powerKw))+' kW':null,row.powerHp?numberFormatter.format(Number(row.powerHp))+' PS':null].filter(Boolean).join(' / '):'—',
     grossWeight:row.grossVehicleWeightKg===null?'—':numberFormatter.format(row.grossVehicleWeightKg)+' kg',
-    camera:row.cameraInstalled,wrapped:row.wrapped,samsara:row.samsara.connected,samsaraOnline:row.samsara.online,latitude:row.samsara.latitude,longitude:row.samsara.longitude,
+    camera:row.cameraInstalled,wrapped:row.wrapped,photoUrl:row.photoId?`/api/vehicles/${row.id}/photo?v=${row.photoId}`:null,samsara:row.samsara.connected,samsaraOnline:row.samsara.online,latitude:row.samsara.latitude,longitude:row.samsara.longitude,
     vin:row.vin||'—',inventory:row.inventoryNumber||'—',insurance:row.insuranceNumber||'—',taxNumber:row.taxNumber||'—',
     finance,rate:paid||!Number.isFinite(numericRate)?'—':moneyFormatter.format(numericRate),
     documentCount:row.documentCount,documentsNotes:row.documentsNotes||undefined,upcoming,
