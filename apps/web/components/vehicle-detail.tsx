@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { FileText, ExternalLink, Check, X, Pencil } from 'lucide-react';
+import { FileText, ExternalLink, Check, X, Pencil, ImagePlus } from 'lucide-react';
 import { DeadlineState, Vehicle } from '@/lib/fleet-types';
 import { VehicleCardDrawer } from '@/components/vehicle-card-drawer';
 import { SamsaraMiniMap } from '@/components/samsara-mini-map';
@@ -19,7 +19,7 @@ export function VehicleDetail({vehicle,onClose,onChanged}:{vehicle:Vehicle;onClo
  return <>
  <section className="vehicleDetail vehicleDetailInline">
    <button className="vehicleDetailClose" onClick={onClose} aria-label="Fahrzeugdetails schließen"><X size={20}/></button>
-   <div className="vehiclePhoto"><div className="truckIllustration"><div className="truckCab"></div><div className="truckBox"></div><div className="road"></div></div><button onClick={()=>setDrawerOpen(true)}><FileText size={16}/>Dokumente ({vehicle.documentCount ?? 0})</button></div>
+   <div className="vehiclePhoto">{vehicle.photoUrl?<img className="vehiclePhotoImage" src={vehicle.photoUrl} alt={`${vehicle.plate} Fahrzeug`}/>:<div className="truckIllustration"><div className="truckCab"></div><div className="truckBox"></div><div className="road"></div></div>}<div className="vehiclePhotoActions">{canWrite&&<button onClick={()=>setDrawerOpen(true)}><ImagePlus size={16}/>{vehicle.photoUrl?'Foto ändern':'Foto hinzufügen'}</button>}<button onClick={()=>setDrawerOpen(true)}><FileText size={16}/>Dokumente ({vehicle.documentCount ?? 0})</button></div></div>
    <div className="vehicleMain"><div className="vehicleTitle"><h2>{vehicle.plate}</h2>{canWrite&&<button className="vehicleEditButton" onClick={()=>setDrawerOpen(true)}><Pencil size={13}/> Bearbeiten</button>}</div><p>{vehicle.vehicle} <span>·</span> {vehicle.firstRegistration}</p>
      <div className="infoGrid"><div><span>VIN</span><strong>{vehicle.vin}</strong></div><div><span>Inventarnummer</span><strong>{vehicle.inventory}</strong></div><div><span>Versicherungsnummer</span><strong>{vehicle.insurance}</strong></div><div><span>Kfz-Steuernummer</span><strong>{vehicle.taxNumber}</strong></div><div><span>Finanzierung</span><strong>{vehicle.finance}</strong></div><div><span>Rate</span><strong>{vehicle.rate}</strong></div><div><span>Leistung</span><strong>{vehicle.power??'—'}</strong></div><div><span>Gesamtmasse</span><strong>{vehicle.grossWeight??'—'}</strong></div></div>
    </div>
