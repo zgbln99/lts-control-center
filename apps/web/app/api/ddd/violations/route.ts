@@ -9,10 +9,14 @@ export async function GET(request:NextRequest){
   const to=params.get('to');
   const acknowledged=params.get('acknowledged');
   const driverId=params.get('driverId')?.trim();
+  const assigned=params.get('assigned');
+  const batchId=params.get('batchId')?.trim();
   const take=Math.min(500,Math.max(25,Number(params.get('take')||250)));
   const violations=await prisma.tachographViolation.findMany({
     where:{
       ...(driverId?{driverId}:{}),
+      ...(batchId?{batchId}:{}),
+      ...(assigned==='true'?{driverId:{not:null}}:assigned==='false'?{driverId:null}:{}),
       ...(severity&&severity!=='ALL'?{severity}:{}),
       ...(from||to?{startsAt:{...(from?{gte:new Date(from)}:{}),...(to?{lte:new Date(to)}:{})}}:{}),
       ...(acknowledged==='true'?{acknowledgedAt:{not:null}}:acknowledged==='false'?{acknowledgedAt:null}:{}),
